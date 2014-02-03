@@ -44,7 +44,7 @@ bridge._object = {
 bridge.consts = {
     SUITS:   ["CLUBS", "DIAMONDS", "HEARTS", "SPADES"],
     STRAINS: ["CLUBS", "DIAMONDS", "HEARTS", "SPADES", "NO_TRUMP"],
-    RANKS:   ["A", "2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K"],
+    RANKS:   ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"],
     POINTS:  {"A": 4, "K": 3, "Q": 2, "J": 1},
     MAXBID:  7,
 };
@@ -133,7 +133,7 @@ bridge.card = bridge._object.extend({
 					  bridge.consts.RANKS.length) + 1;
 		this.suit = bridge.consts.SUITS[this.suit_id-1];
 	    }
-            if (this.rank === null) {
+           if (this.rank === null) {
 		this.rank_id = (this.id-1) % bridge.consts.RANKS.length + 1;
 		this.rank = bridge.consts.RANKS[this.rank_id-1];
 	    }
@@ -205,6 +205,9 @@ bridge.hand = bridge._object.extend({
 	for (var ii = 0; ii < this.cards.length; ii++) {
 	    if (typeof this.cards[ii] === 'number') {
 		this.cards[ii] = bridge.deck[this.cards[ii]];
+	    }
+	    else if (typeof this.cards[ii] === "string") {
+		this.cards[ii] = bridge.card.make({str: this.cards[ii]});
 	    }
 	}
 	this.by_suit = {};
@@ -461,7 +464,7 @@ bridge.test = function() {
     if (bridge.card.make({ str: "TH" }).to_string() != "TH") {
 	throw "Bad card TH";
     }
-    if (bridge.deck[51].to_string() != "KS") {
+    if (bridge.deck[51].to_string() != "AS") {
 	throw "Bad deck";
     }
     h = bridge.hand.make({
@@ -470,8 +473,21 @@ bridge.test = function() {
     if (h.is_balanced() != true) {
 	throw "Unbalanced";
     }
-    if (h.hc_points() != 16) {
+    if (h.hc_points() != 0) {
 	throw "Wrong points";
+    }
+    h = bridge.hand.make({
+	cards: ["9S", "8S", "7S", "6S", "3S", "9H", "8H",
+		"KD", "4D", "AC", "QC", "8C", "3C"],
+    });
+    if (h.is_balanced() != false) {
+	throw "Shouldn't be balanced";
+    }
+    if (h.hc_points() != 9) {
+	throw "Wrong HC points 2";
+    }
+    if (h.points() != 10) {
+	throw "Wrong points 2";
     }
     if (bridge.bid.make({
 	id: 4,
