@@ -85,7 +85,7 @@ bridge.card = {
 	    this.id = (this.suit-1) * bridge.consts.RANKS.length + this.rank;
 	} else {
             if (this.suit === null) {
-		this.suit_id = Math.floor(this.id / bridge.consts.RANKS.length) + 1;
+		this.suit_id = Math.floor((this.id-1) / bridge.consts.RANKS.length) + 1;
 		this.suit = bridge.consts.SUITS[this.suit_id-1];
 	    }
             if (this.rank === null) {
@@ -94,6 +94,14 @@ bridge.card = {
 	    }
 	}
 	return this;
+    },
+
+    hc_points: function() {
+	if (this.rank in bridge.consts.POINTS) {
+	    return bridge.consts.POINTS[this.rank];
+	} else {
+	    return 0;
+	}
     },
 
     to_string: function() {
@@ -147,9 +155,7 @@ bridge.hand = {
     hc_points: function() {
 	var points = 0;
 	for (var ii = 0; ii < this.cards.length; ii++) {
-	    if (this.cards[ii].rank in bridge.consts.POINTS) {
-		points += bridge.consts.POINTS[this.cards[ii].rank];
-	    }
+	    points += this.cards[ii].hc_points();
 	}
 	return points;
     },
@@ -192,6 +198,9 @@ bridge.test = function() {
     c = bridge.deck[4];
     if (c.suit != "CLUBS") {
 	throw "Bad suit";
+    }
+    if (bridge.deck[51].to_string() != "KS") {
+	throw "Bad deck";
     }
     h = bridge.hand.extend({
 	cards: [0, 1, 2, 13, 14, 15, 26, 27, 28, 39, 40, 41],
