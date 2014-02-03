@@ -166,6 +166,31 @@ for (var ii = 0;
     bridge.deck.push(bridge.card.make({ id: ii+1 }));
 }
 
+bridge.shuffle = function() { 
+    var deck = [];
+    for (var ii = 0; ii < bridge.deck.length; ii++) {
+	deck.push(ii);
+    }
+    for (var ii = 0; ii < bridge.deck.length; ii++) {
+	var rand = Math.floor((Math.random()*bridge.deck.length));
+	var tmp = deck[rand];
+	deck[rand] = deck[ii];
+	deck[ii] = tmp;
+    }
+    return deck;
+}
+
+bridge.deal = function() {
+    var deck = bridge.shuffle();
+    var hands = [];
+    for (var ii = 0; ii < 4; ii++) {
+	hands.push(bridge.hand.make({
+	    cards: deck.slice(13*ii, 13*ii+13)
+	}));
+    }
+    return hands;
+}
+
 /**************************************************************************
  * Hand
  **************************************************************************/
@@ -195,6 +220,15 @@ bridge.hand = bridge._object.extend({
 	var points = 0;
 	for (var ii = 0; ii < this.cards.length; ii++) {
 	    points += this.cards[ii].hc_points();
+	}
+	return points;
+    },
+
+    
+    points: function() {
+	var points = this.hc_points();
+	for (var suit in this.by_suit) {
+	    points += Math.max(0, this.by_suit[suit].length - 4);
 	}
 	return points;
     },
