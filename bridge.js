@@ -29,38 +29,13 @@ bridge._object = {
         }
         return obj;
     },
+    init: function() {
+	return this;
+    },
+    make: function(props) {
+	return this.extend(props).init();
+    }
 }
-
-bridge._ordered_dict = bridge._object.extend({
-    values : [],
-    name : null,
-    is_valid_value: function(value) {
-	if (value < 1 || value > this.values.length) {
-	    throw "Invalid " + this.name + " id: " + value;
-	}
-	return true;
-    }
-    is_valid_name: function(name) {
-	if (this.values.indexOf(name) < 0) {
-	    throw "Invalid " + this.name + ": " + name;
-	}
-	return true;
-    }
-    from_value: function(value) {
-	this.is_valid_value(value);
-	return this.values[value-1];
-    }
-    from_name: function(name) {
-	this.is_valid_name(name);
-	return this.indexOf(name)+1;
-    }
-    length: function() {
-	return this.values.length;
-    }
-    get: function(idx) {
-	return this.values[idx];
-    }
-});
 
 /**************************************************************************
  * Constants
@@ -71,6 +46,7 @@ bridge.consts = {
     STRAINS: ["CLUBS", "DIAMONDS", "HEARTS", "SPADES", "NO_TRUMP"],
     RANKS:   ["A", 2, 3, 4, 5, 6, 7, 8, 9, "T", "J", "Q", "K"],
     POINTS:  {"A": 4, "K": 3, "Q": 2, "J": 1},
+    MAXBID:  7,
 };
 
 /**************************************************************************
@@ -89,13 +65,15 @@ bridge.card = bridge._object.extend({
     init: function() {
 	if (this.id !== null &&
 	    (this.id < 1 ||
-	    this.id > bridge.consts.SUITS.length * bridge.consts.RANKS.length)) {
+	    this.id > bridge.consts.SUITS.length * bridge.consts.RANKS.length))
+	{
 	    throw "Invalid card id: " + this.id;
 	}
 
 	if (this.suit_id !== null &&
 	    (this.suit_id < 1 ||
-	    this.suit_id > bridge.consts.SUITS.length)) {
+	    this.suit_id > bridge.consts.SUITS.length))
+	{
 	    throw "Invalid suit_id: " + this.suit_id;
 	}
 
@@ -113,7 +91,8 @@ bridge.card = bridge._object.extend({
 
 	if (this.rank_id !== null &&
 	    (this.rank_id < 1 ||
-	    this.rank_id > bridge.consts.RANKS.length)) {
+	    this.rank_id > bridge.consts.RANKS.length))
+	{
 	    throw "Invalid rank_id: " + this.rank_id;
 	}
 
@@ -133,10 +112,11 @@ bridge.card = bridge._object.extend({
 	    if (this.suit === null || this.rank === null) {
 		throw "No id for card";
 	    }
-	    this.id = (this.suit-1) * bridge.consts.RANKS.length + this.rank;
+	    this.id = (this.suit_id-1) * bridge.consts.RANKS.length + this.rank_id;
 	} else {
             if (this.suit === null) {
-		this.suit_id = Math.floor((this.id-1) / bridge.consts.RANKS.length) + 1;
+		this.suit_id = Math.floor((this.id-1) /
+					  bridge.consts.RANKS.length) + 1;
 		this.suit = bridge.consts.SUITS[this.suit_id-1];
 	    }
             if (this.rank === null) {
@@ -166,8 +146,11 @@ bridge.card = bridge._object.extend({
 // Note that bridge.card.id is 1-indexed, but bridge.deck, like any
 // array, is 0-indexed
 bridge.deck = [];
-for (var ii = 0; ii < bridge.consts.SUITS.length * bridge.consts.RANKS.length; ii++) {
-    bridge.deck.push(bridge.card.extend({ id: ii+1 }).init());
+for (var ii = 0;
+     ii < bridge.consts.SUITS.length * bridge.consts.RANKS.length;
+     ii++)
+{
+    bridge.deck.push(bridge.card.make({ id: ii+1 }));
 }
 
 /**************************************************************************
@@ -224,12 +207,77 @@ bridge.hand = bridge._object.extend({
     }
 });
 
+/**************************************************************************
+ * Hand Range
+ **************************************************************************/
 bridge.handrange = {
 };
 
-bridge.bid = {
-    // rank + strain
-};
+/**************************************************************************
+ * Bid
+ **************************************************************************/
+bridge.bid = bridge._object.extend({
+    id        : null,
+    level     : null,
+    strain_id : null,
+    strain    : null,
+
+    init: function() {
+	if (this.id !== null &&
+	    (this.id < 1 ||
+	    this.id > bridge.consts.STRAINS.length * bridge.consts.MAXBID))
+	{
+	    throw "Invalid bid id: " + this.id;
+	}
+
+	if (this.level !== null &&
+	    (this.level < 1 || this.level > bridge.consts.MAXBID))
+	{
+	    throw "Invalid level: " + this.level;
+	}
+
+	if (this.strain_id !== null &&
+	    (this.strain_id < 1 ||
+	     this.strain_id > bridge.consts.STRAINS.length))
+	{
+	    throw "Invalid strain_id: " + this.strain_id;
+	}
+
+	if (this.strain !== null &&
+	    bridge.consts.STRAINS.indexOf(this.strain) < 0)
+	{
+	    throw "Invalid strain: " + this.strain;
+	}
+
+	if (this.strain === null && this.strain_id !== null) {
+	    this.strain = bridge.consts.STRAINS[this.strain_id-1];
+	}
+
+	if (this.strain_id === null && this.strain !== null) {
+	    this.strain_id = bridge.consts.STRAINS.indexOf(this.strain)+1;
+	}
+
+	if (this.id === null) {
+	    if (this.level === null || this.strain === null) {
+		throw "No id for bid";
+	    }
+	    this.id = (this.level-1) * bridge.consts.STRAINS.length + this.strain_id;
+	} else {
+            if (this.level === null) {
+		this.level = Math.floor((this.id-1) / bridge.consts.STRAINS.length) + 1;
+	    }
+            if (this.strain === null) {
+		this.strain_id = (this.id-1) % bridge.consts.STRAINS.length + 1;
+		this.strain = bridge.consts.STRAINS[this.strain_id-1];
+	    }
+	}
+	return this;
+    },
+
+    to_string: function() {
+	return this.level + this.strain.substring(0, 1);
+    },
+});
 
 /**************************************************************************
  * Test
@@ -261,9 +309,9 @@ bridge.strategy.interpret_bid = function(bid_history, hand) {
  **************************************************************************/
 
 bridge.test = function() {
-    c = bridge.card.extend({
+    c = bridge.card.make({
 	id: 4,
-    }).init();
+    });
     if (c.suit != "CLUBS") {
 	throw "Bad suit";
     }
@@ -274,16 +322,27 @@ bridge.test = function() {
     if (bridge.deck[51].to_string() != "KS") {
 	throw "Bad deck";
     }
-    h = bridge.hand.extend({
+    h = bridge.hand.make({
 	cards: [0, 1, 2, 13, 14, 15, 26, 27, 28, 39, 40, 41],
-    }).init();
+    });
     if (h.is_balanced() != true) {
 	throw "Unbalanced";
     }
     if (h.hc_points() != 16) {
 	throw "Wrong points";
     }
-    return h;
+    if (bridge.bid.make({
+	id: 4,
+    }).to_string() != "1S") {
+	throw "Bad bid 4";
+    }
+    b = bridge.bid.make({
+	id: 35,
+    });
+    if (b.to_string() != "7N") {
+	throw "Bad bid 35";
+    }
+    return b;
 };
 
 /**************************************************************************/
