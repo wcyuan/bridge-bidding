@@ -44,7 +44,7 @@ bridge._object = {
 bridge.consts = {
     SUITS:   ["CLUBS", "DIAMONDS", "HEARTS", "SPADES"],
     STRAINS: ["CLUBS", "DIAMONDS", "HEARTS", "SPADES", "NO_TRUMP"],
-    RANKS:   ["A", 2, 3, 4, 5, 6, 7, 8, 9, "T", "J", "Q", "K"],
+    RANKS:   ["A", "2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K"],
     POINTS:  {"A": 4, "K": 3, "Q": 2, "J": 1},
     MAXBID:  7,
 };
@@ -63,6 +63,19 @@ bridge.card = bridge._object.extend({
     rank_id : null,
 
     init: function() {
+	if ("str" in this) {
+	    if (this.str !== null) {
+		this.rank = this.str.substring(0, 1);
+		var suit_char = this.str.substring(1, 2);
+		for (var ii = 0; ii < bridge.consts.SUITS.length; ii++) {
+		    if (suit_char === bridge.consts.SUITS[ii].substring(0, 1)) {
+			this.suit = bridge.consts.SUITS[ii];
+			break;
+		    }
+		}
+	    }
+	    delete this.str;
+	}
 	if (this.id !== null &&
 	    (this.id < 1 ||
 	    this.id > bridge.consts.SUITS.length * bridge.consts.RANKS.length))
@@ -208,14 +221,9 @@ bridge.hand = bridge._object.extend({
 });
 
 /**************************************************************************
- * Hand Range
- **************************************************************************/
-bridge.handrange = {
-};
-
-/**************************************************************************
  * Bid
  **************************************************************************/
+
 bridge.bid = bridge._object.extend({
     id        : null,
     level     : null,
@@ -223,6 +231,20 @@ bridge.bid = bridge._object.extend({
     strain    : null,
 
     init: function() {
+	if ("str" in this) {
+	    if (this.str !== null) {
+		this.level = parseInt(this.str.substring(0, 1));
+		var strain_char = this.str.substring(1, 2);
+		for (var ii = 0; ii < bridge.consts.STRAINS.length; ii++) {
+		    if (strain_char == bridge.consts.STRAINS[ii].substring(0, 1)) {
+			this.strain = bridge.consts.STRAINS[ii];
+			break;
+		    }
+		}
+	    }
+	    delete this.str;
+	}
+
 	if (this.id !== null &&
 	    (this.id < 1 ||
 	    this.id > bridge.consts.STRAINS.length * bridge.consts.MAXBID))
@@ -280,13 +302,25 @@ bridge.bid = bridge._object.extend({
 });
 
 /**************************************************************************
- * Test
+ * Hand Range
+ **************************************************************************/
+bridge.handrange = {
+};
+
+/**************************************************************************
+ * Strategy
  **************************************************************************/
 
 bridge.strategy = {};
 
 // Given a bid history, and a hand, figure out what the next bid
 // should be.
+
+/*
+  if opening (your partner hasn't bid):
+    - if 16-18 points + balanced, bid 1NT
+    - if 
+ */
 bridge.strategy.make_bid = function(bid_history, hand) {
 };
 
@@ -294,15 +328,6 @@ bridge.strategy.make_bid = function(bid_history, hand) {
 // the last bid.
 bridge.strategy.interpret_bid = function(bid_history, hand) {
 };
-
-/*
-  Main functions:
-
-  if opening (your partner hasn't bid):
-    - if 16-18 points + balanced, bid 1NT
-    - if 
-
- */
 
 /**************************************************************************
  * Test
@@ -318,6 +343,9 @@ bridge.test = function() {
     c = bridge.deck[4];
     if (c.suit != "CLUBS") {
 	throw "Bad suit";
+    }
+    if (bridge.card.make({ str: "TH" }).to_string() != "TH") {
+	throw "Bad card TH";
     }
     if (bridge.deck[51].to_string() != "KS") {
 	throw "Bad deck";
@@ -335,6 +363,9 @@ bridge.test = function() {
 	id: 4,
     }).to_string() != "1S") {
 	throw "Bad bid 4";
+    }
+    if (bridge.bid.make({ str: "1S" }).to_string() != "1S") {
+	throw "Bad bid 1S";
     }
     b = bridge.bid.make({
 	id: 35,
