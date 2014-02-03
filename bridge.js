@@ -34,8 +34,8 @@ bridge._object = {
     },
     make: function(props) {
 	return this.extend(props).init();
-    }
-}
+    },
+};
 
 /**************************************************************************
  * Constants
@@ -126,7 +126,8 @@ bridge.card = bridge._object.extend({
 		throw "No id for card";
 	    }
 	    this.id = (this.suit_id-1) * bridge.consts.RANKS.length + this.rank_id;
-	} else {
+	}
+	else {
             if (this.suit === null) {
 		this.suit_id = Math.floor((this.id-1) /
 					  bridge.consts.RANKS.length) + 1;
@@ -143,7 +144,8 @@ bridge.card = bridge._object.extend({
     hc_points: function() {
 	if (this.rank in bridge.consts.POINTS) {
 	    return bridge.consts.POINTS[this.rank];
-	} else {
+	}
+	else {
 	    return 0;
 	}
     },
@@ -178,7 +180,7 @@ bridge.shuffle = function() {
 	deck[ii] = tmp;
     }
     return deck;
-}
+};
 
 bridge.deal = function() {
     var deck = bridge.shuffle();
@@ -189,7 +191,7 @@ bridge.deal = function() {
 	}));
     }
     return hands;
-}
+};
 
 /**************************************************************************
  * Hand
@@ -209,7 +211,7 @@ bridge.hand = bridge._object.extend({
 	for (var ii = 0; ii < bridge.consts.SUITS.length; ii++) {
 	    this.by_suit[bridge.consts.SUITS[ii]] = [];
 	}
-	this.cards.sort(function(a,b) {return a.id - b.id});
+	this.cards.sort(function(a,b) {return b.id - a.id});
 	for (var ii = 0; ii < this.cards.length; ii++) {
 	    this.by_suit[this.cards[ii].suit].push(this.cards[ii]);
 	}
@@ -223,7 +225,6 @@ bridge.hand = bridge._object.extend({
 	}
 	return points;
     },
-
     
     points: function() {
 	var points = this.hc_points();
@@ -238,10 +239,12 @@ bridge.hand = bridge._object.extend({
 	for (var suit in this.by_suit) {
 	    if (this.by_suit[suit].length < 2) {
 		return false;
-	    } else if (this.by_suit[suit].length == 2) {
+	    }
+	    else if (this.by_suit[suit].length == 2) {
 		if (seen_doubleton) {
 		    return false;
-		} else {
+		}
+		else {
 		    seen_doubleton = true;
 		}
 	    }
@@ -249,9 +252,20 @@ bridge.hand = bridge._object.extend({
 	return true;
     },
 
-    to_string: function() {
+    to_string_oneline: function() {
 	return this.cards.map(function(c) {return c.to_string()}).join(", ");
-    }
+    },
+
+    to_string: function() {
+	return bridge.consts.SUITS.map(
+	    function(s) {
+		return s.substring(0, 1)
+		    + ": "
+		    + this.by_suit[s].map(
+			function(c) {return c.rank;}
+		    ).join('');}, this
+	).join("\n");
+    },
 });
 
 /**************************************************************************
@@ -259,6 +273,7 @@ bridge.hand = bridge._object.extend({
  **************************************************************************/
 
 bridge.bid = bridge._object.extend({
+    // XXX Need to add DOUBLE, and REDOUBLE
     id        : null,
     level     : null,
     strain_id : null,
@@ -267,12 +282,19 @@ bridge.bid = bridge._object.extend({
     init: function() {
 	if ("str" in this) {
 	    if (this.str !== null) {
-		this.level = parseInt(this.str.substring(0, 1));
-		var strain_char = this.str.substring(1, 2);
-		for (var ii = 0; ii < bridge.consts.STRAINS.length; ii++) {
-		    if (strain_char == bridge.consts.STRAINS[ii].substring(0, 1)) {
-			this.strain = bridge.consts.STRAINS[ii];
-			break;
+		if (this.str == "PS") {
+		    this.id = 0;
+		}
+		else {
+		    this.level = parseInt(this.str.substring(0, 1));
+		    var strain_char = this.str.substring(1, 2);
+		    for (var ii = 0; ii < bridge.consts.STRAINS.length; ii++) {
+			if (strain_char ==
+			    bridge.consts.STRAINS[ii].substring(0, 1))
+			{
+			    this.strain = bridge.consts.STRAINS[ii];
+			    break;
+			}
 		    }
 		}
 	    }
@@ -280,7 +302,7 @@ bridge.bid = bridge._object.extend({
 	}
 
 	if (this.id !== null &&
-	    (this.id < 1 ||
+	    (this.id < 0 ||
 	    this.id > bridge.consts.STRAINS.length * bridge.consts.MAXBID))
 	{
 	    throw "Invalid bid id: " + this.id;
@@ -318,7 +340,8 @@ bridge.bid = bridge._object.extend({
 		throw "No id for bid";
 	    }
 	    this.id = (this.level-1) * bridge.consts.STRAINS.length + this.strain_id;
-	} else {
+	}
+	else if (this.id != 0) {
             if (this.level === null) {
 		this.level = Math.floor((this.id-1) / bridge.consts.STRAINS.length) + 1;
 	    }
@@ -331,6 +354,9 @@ bridge.bid = bridge._object.extend({
     },
 
     to_string: function() {
+	if (this.id == 0) {
+	    return "PS";
+	}
 	return this.level + this.strain.substring(0, 1);
     },
 });
@@ -343,19 +369,73 @@ bridge.handrange = {
 
 /**************************************************************************
  * Strategy
+ *
+ * A strategy is based on two functions:
+ *
+ *   make_bid - given a bid history and a hand, figure out what to bid
+ *
+ *   interpret_bid - given a bid history, figure out what hands your
+ *                   partner could have. (returns a hand-range)
+ *
+ * The ideal way for this to work is to have a class:
+ *   handrange
+ * that encapsulates a set of possible hands.  Then, have a function that,
+ * for any given bid history, creates an ordered list of bidding rules of the
+ * form:
+ *   < handrange, bid >
+ * In order to create the list of handranges, you probably need the
+ * handranges of your partner's previous bid.
+ *
+ * Then, to make a bid, just loop through the rules until you find a range that
+ * matches your hand, then that's your bid.
+ *
+ * To interpret a bid, loop through the rules to find all the bids that match the
+ * given bid, and concatenate the handranges together.
+ *
  **************************************************************************/
 
 bridge.strategy = {};
 
+// make_bid:
+//
 // Given a bid history, and a hand, figure out what the next bid
 // should be.
-
-/*
-  if opening (your partner hasn't bid):
-    - if 16-18 points + balanced, bid 1NT
-    - if 
- */
 bridge.strategy.make_bid = function(bid_history, hand) {
+    // Opening.  Either your partner hasn't had a chance to bid, or
+    // your partner passed.
+    if (bid_history.length < 2 ||
+	bid_history.length < 4 &&
+	bid_history[bid_history.length-3].to_string() == "PS")
+    {
+	var pts = hand.points();
+	if (pts < 13) {
+	    return bridge.bid.make({str: "PS"});
+	}
+	if (pts >= 16 && pts <= 18 && hand.is_balanced()) {
+	    return bridge.bid.make({str: "1N"});
+	}
+	// First look for a five card major
+	if (hand.by_suit["SPADES"].length > 4) {
+	    return bridge.bid.make({str: "1S"});
+	}
+	else if (hand.by_suit["HEARTS"].length > 4) {
+	    return bridge.bid.make({str: "1H"});
+	}
+	// 3 clubs and 3 diamonds is an exception
+	else if (hand.by_suit["DIAMONDS"].length == 3 &&
+		 hand.by_suit["CLUBS"].length == 3)
+	{
+	    return bridge.bid.make({str: "1C"});
+	}
+	else if (hand.by_suit["DIAMONDS"].length >= 
+		 hand.by_suit["CLUBS"].length)
+	{
+	    return bridge.bid.make({str: "1D"});
+	}
+	else {
+	    return bridge.bid.make({str: "1C"});
+	}
+    }
 };
 
 // Given a bid history (and a hand), return possible hand ranges for
@@ -407,7 +487,11 @@ bridge.test = function() {
     if (b.to_string() != "7N") {
 	throw "Bad bid 35";
     }
-    return b;
+    hands = bridge.deal();
+    if (hands.reduce(function(a, b) { return a + b.hc_points(); }, 0) != 40) {
+	throw "hand points don't sum to 40"
+    }
+    return hands;
 };
 
 /**************************************************************************/
