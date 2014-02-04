@@ -516,6 +516,9 @@ bridge.strategy.make_rules = function(bid_history) {
 	    bridge.handrange.make({}),
 	], bridge.bid.make({str: "1C"})]);
     }
+    else {
+	// XXX
+    }
     return rules;
 };
 
