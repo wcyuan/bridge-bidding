@@ -37,6 +37,29 @@ bridge._object = {
     },
 };
 
+bridge.range = function() {
+    var start = 0;
+    var step = 1;
+    var end;
+    if (arguments.length == 1) {
+	end = arguments[0];
+    }
+    else if (arguments.length == 2) {
+	start = arguments[0];
+	end = arguments[1];
+    }
+    else if (arguments.length == 3) {
+	start = arguments[0];
+	end = arguments[1];
+	step = arguments[2];
+    }
+    var retval = [];
+    for (var ii = start; ii < end; ii += step) {
+	retval.push(ii);
+    }
+    return retval;
+}
+
 /**************************************************************************
  * Constants
  **************************************************************************/
@@ -150,7 +173,7 @@ bridge.card = bridge._object.extend({
 	}
     },
 
-    to_string: function() {
+    toString: function() {
 	return this.rank + this.suit.substring(0, 1);
     },
 });
@@ -255,11 +278,11 @@ bridge.hand = bridge._object.extend({
 	return true;
     },
 
-    to_string_oneline: function() {
+    toString_oneline: function() {
 	return this.cards.map(function(c) {return c.to_string()}).join(", ");
     },
 
-    to_string: function() {
+    toString: function() {
 	return bridge.consts.SUITS.map(
 	    function(s) {
 		return s.substring(0, 1)
@@ -356,7 +379,7 @@ bridge.bid = bridge._object.extend({
 	return this;
     },
 
-    to_string: function() {
+    toString: function() {
 	if (this.id == 0) {
 	    return "PS";
 	}
@@ -367,8 +390,43 @@ bridge.bid = bridge._object.extend({
 /**************************************************************************
  * Hand Range
  **************************************************************************/
-bridge.handrange = {
-};
+bridge.handrange = bridge._object.extend({
+    points:      bridge.range(1, 21),
+    nCLUBS:      bridge.range(1, 13),
+    nDIAMONDS:   bridge.range(1, 13),
+    nHEARTS:     bridge.range(1, 13),
+    nSPADES:     bridge.range(1, 13),
+    is_balanced: [true, false],
+    match: function(hand, detail) {
+	if (detail === null) {
+	    detail = false;
+	}
+	if (this.points.indexOf(hand.points()) < 0) {
+	    if (detail) {
+		console.log("Bad points: " + hand.points() + " not in " + this.points);
+	    }
+	    return false;
+	}
+	for (var ss = 0; ss < bridge.consts.SUITS.length; ss++) {
+	    suit = bridge.consts.SUITS[ss];
+	    if (this["n" + suit].indexOf(hand.by_suit[suit].length) < 0) {
+		if (detail) {
+		    console.log("Bad " + suit + ": " + hand.by_suit[suit].length +
+				" not in " + this["n" + suit]);
+		}
+		return false;
+	    }
+	}
+	if (this.is_balanced.indexOf(hand.is_balanced()) < 0) {
+	    if (detail) {
+		console.log("Bad is_balanced: " + hand.is_balanced() +
+			    " not in " + this.is_balanced);
+	    }
+	    return false;
+	}
+	return true;
+    },
+});
 
 /**************************************************************************
  * Strategy
@@ -399,46 +457,68 @@ bridge.handrange = {
 
 bridge.strategy = {};
 
+bridge.strategy.is_opening = function(bid_history) {
+    return (bid_history.length < 2 ||
+	    bid_history.length < 4 &&
+	    bid_history[bid_history.length-3].toString() == "PS");
+};
+
+bridge.strategy.make_rules = function(bid_history) {
+    // Opening.  Either your partner hasn't had a chance to bid, or
+    // your partner passed.
+    rules = [];
+    if (bridge.strategy.is_opening(bid_history)) {
+	rules.push([[
+	    bridge.handrange.make({points: bridge.range(1, 12)}),
+	], bridge.bid.make({str: "PS"})]);
+
+	rules.push([[
+	    bridge.handrange.make({points: bridge.range(16, 18),
+				  is_balanced: [true]}),
+	], bridge.bid.make({str: "1N"})]);
+
+	rules.push([[
+ 	    bridge.handrange.make({nSPADES: bridge.range(7, 13)}),
+	    bridge.handrange.make({nSPADES: [6], nHEARTS: bridge.range(1, 5)}),
+	    bridge.handrange.make({nSPADES: [5], nHEARTS: bridge.range(1, 4)}),
+	], bridge.bid.make({str: "1S"})]);
+
+	rules.push([[
+	    bridge.handrange.make({nHEARTS: bridge.range(5, 13)}),
+	], bridge.bid.make({str: "1H"})]);
+
+	rules.push([[
+	    bridge.handrange.make({nDIAMONDS: [3], nCLUBS: [3]}),
+	], bridge.bid.make({str: "1C"})]);
+
+	rules.push([[
+	    bridge.handrange.make({nDIAMONDS: bridge.range(7, 13)}),
+	    bridge.handrange.make({nDIAMONDS: [6], nCLUBS: bridge.range(1, 6)}),
+	    bridge.handrange.make({nDIAMONDS: [5], nCLUBS: bridge.range(1, 5)}),
+	    bridge.handrange.make({nDIAMONDS: [4], nCLUBS: bridge.range(1, 4)}),
+	], bridge.bid.make({str: "1D"})]);
+
+	rules.push([[
+	    bridge.handrange.make({}),
+	], bridge.bid.make({str: "1C"})]);
+    }
+    return rules;
+};
+
 // make_bid:
 //
 // Given a bid history, and a hand, figure out what the next bid
 // should be.
 bridge.strategy.make_bid = function(bid_history, hand) {
-    // Opening.  Either your partner hasn't had a chance to bid, or
-    // your partner passed.
-    if (bid_history.length < 2 ||
-	bid_history.length < 4 &&
-	bid_history[bid_history.length-3].to_string() == "PS")
-    {
-	var pts = hand.points();
-	if (pts < 13) {
-	    return bridge.bid.make({str: "PS"});
-	}
-	if (pts >= 16 && pts <= 18 && hand.is_balanced()) {
-	    return bridge.bid.make({str: "1N"});
-	}
-	// First look for a five card major
-	if (hand.by_suit["SPADES"].length > 4) {
-	    return bridge.bid.make({str: "1S"});
-	}
-	else if (hand.by_suit["HEARTS"].length > 4) {
-	    return bridge.bid.make({str: "1H"});
-	}
-	// 3 clubs and 3 diamonds is an exception
-	else if (hand.by_suit["DIAMONDS"].length == 3 &&
-		 hand.by_suit["CLUBS"].length == 3)
-	{
-	    return bridge.bid.make({str: "1C"});
-	}
-	else if (hand.by_suit["DIAMONDS"].length >= 
-		 hand.by_suit["CLUBS"].length)
-	{
-	    return bridge.bid.make({str: "1D"});
-	}
-	else {
-	    return bridge.bid.make({str: "1C"});
+    rules = bridge.strategy.make_rules(bid_history);
+    for (var rr = 0; rr < rules.length; rr++) {
+	for (var h = 0; h < rules[rr][0].length; h++) {
+	    if (rules[rr][0][h].match(hand)) {
+		return rules[rr][1];
+	    }
 	}
     }
+    throw "Incomplete bid rules"
 };
 
 // Given a bid history (and a hand), return possible hand ranges for
@@ -461,10 +541,10 @@ bridge.test = function() {
     if (c.suit != "CLUBS") {
 	throw "Bad suit";
     }
-    if (bridge.card.make({ str: "TH" }).to_string() != "TH") {
+    if (bridge.card.make({ str: "TH" }).toString() != "TH") {
 	throw "Bad card TH";
     }
-    if (bridge.deck[51].to_string() != "AS") {
+    if (bridge.deck[51].toString() != "AS") {
 	throw "Bad deck";
     }
     h = bridge.hand.make({
@@ -491,16 +571,16 @@ bridge.test = function() {
     }
     if (bridge.bid.make({
 	id: 4,
-    }).to_string() != "1S") {
+    }).toString() != "1S") {
 	throw "Bad bid 4";
     }
-    if (bridge.bid.make({ str: "1S" }).to_string() != "1S") {
+    if (bridge.bid.make({ str: "1S" }).toString() != "1S") {
 	throw "Bad bid 1S";
     }
     b = bridge.bid.make({
 	id: 35,
     });
-    if (b.to_string() != "7N") {
+    if (b.toString() != "7N") {
 	throw "Bad bid 35";
     }
     hands = bridge.deal();
