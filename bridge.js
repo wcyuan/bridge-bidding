@@ -398,6 +398,7 @@ bridge.handrange = bridge._object.extend({
     nSPADES:     bridge.range(1, 13),
     is_balanced: [true, false],
     match: function(hand, detail) {
+	// A hand much match all criteria to match.
 	if (detail === null) {
 	    detail = false;
 	}
@@ -426,7 +427,19 @@ bridge.handrange = bridge._object.extend({
 	}
 	return true;
     },
+    complement: function() {
+	// XXX
+	return [];
+    }
 });
+
+bridge.hr.intersect = function(hr1, hr2) {
+    // XXX
+};
+
+bridge.hr.complement = function(hr) {
+    // XXX
+};
 
 /**************************************************************************
  * Strategy
@@ -466,7 +479,7 @@ bridge.strategy.is_opening = function(bid_history) {
 bridge.strategy.make_rules = function(bid_history) {
     // Opening.  Either your partner hasn't had a chance to bid, or
     // your partner passed.
-    rules = [];
+    var rules = [];
     if (bridge.strategy.is_opening(bid_history)) {
 	rules.push([[
 	    bridge.handrange.make({points: bridge.range(1, 12)}),
@@ -510,7 +523,7 @@ bridge.strategy.make_rules = function(bid_history) {
 // Given a bid history, and a hand, figure out what the next bid
 // should be.
 bridge.strategy.make_bid = function(bid_history, hand) {
-    rules = bridge.strategy.make_rules(bid_history);
+    var rules = bridge.strategy.make_rules(bid_history);
     for (var rr = 0; rr < rules.length; rr++) {
 	for (var h = 0; h < rules[rr][0].length; h++) {
 	    if (rules[rr][0][h].match(hand)) {
@@ -524,6 +537,20 @@ bridge.strategy.make_bid = function(bid_history, hand) {
 // Given a bid history (and a hand), return possible hand ranges for
 // the last bid.
 bridge.strategy.interpret_bid = function(bid_history, hand) {
+    // copy the bid_history before we mutate it
+    bid_history = bid_history.slice(0);
+    var last_bid = bid_history.pop();
+    var rules = bridge.strategy.make_rules(bid_history);
+    var handrange = [bridge.handrange.make({})];
+    for (var rr = 0; rr < rules.length; rr++) {
+	if (last_bid == rules[rr][1]) {
+	    handrange = bridge.hr.intersect(handrange, bridge.hr.complement(rules[rr][0]));
+	}
+	else {
+	    return bridge.hr.intersect(handrange, rules[rr][0]);
+	}
+    }
+    return handrange;
 };
 
 /**************************************************************************
