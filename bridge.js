@@ -184,12 +184,14 @@ bridge.card = bridge._object.extend({
 // Note that bridge.card.id is 1-indexed, but bridge.deck, like any
 // array, is 0-indexed
 bridge.deck = [];
-for (var ii = 0;
-     ii < bridge.consts.SUITS.length * bridge.consts.RANKS.length;
-     ii++)
-{
-    bridge.deck.push(bridge.card.make({ id: ii+1 }));
-}
+(function() {
+    for (var ii = 0;
+	 ii < bridge.consts.SUITS.length * bridge.consts.RANKS.length;
+	 ii++)
+    {
+	bridge.deck.push(bridge.card.make({ id: ii+1 }));
+    }
+})();
 
 bridge.shuffle = function() { 
     var deck = [];
@@ -388,6 +390,52 @@ bridge.bid = bridge._object.extend({
 });
 
 /**************************************************************************
+ * Criterion
+ **************************************************************************/
+bridge.crit = bridge._object.extend({
+    func: null,
+    name: null,
+    values: [],
+    allvalues: [],
+    match: function(hand, detail) {
+	var handval = this.func(hand)
+	if (this.values.indexOf(handval) < 0) {
+	    if (detail) {
+		console.log("Bad " + name + ": " + handval +
+			    " not in " + this.values);
+	    }
+	    return false;
+	}
+	return true;
+    },
+    invert: function() {
+	var _this = this;
+	return this.make({
+	    values: _this.allvalues.filter(function(x) {
+		return _this.values.indexOf(x) < 0 }),
+	});
+    },
+    union: function(other) {
+	var _this = this;
+	return this.make({
+	    values: _this.allvalues.filter(function(x) {
+		return _this.values.indexOf(x) >= 0 || 
+		    other.values.indexOf(x) >= 0;
+	    }),
+	});
+    },
+    intersect: function(other) {
+	var _this = this;
+	return this.make({
+	    values: _this.allvalues.filter(function(x) {
+		return _this.values.indexOf(x) >= 0 &&
+		    other.values.indexOf(x) >= 0;
+	    }),
+	});
+    },
+});
+
+/**************************************************************************
  * Hand Range
  **************************************************************************/
 bridge.handrange = bridge._object.extend({
@@ -562,7 +610,7 @@ bridge.strategy.interpret_bid = function(bid_history, hand) {
  **************************************************************************/
 
 bridge.test = function() {
-    c = bridge.card.make({
+    var c = bridge.card.make({
 	id: 4,
     });
     if (c.suit != "CLUBS") {
@@ -578,7 +626,7 @@ bridge.test = function() {
     if (bridge.deck[51].toString() != "AS") {
 	throw "Bad deck";
     }
-    h = bridge.hand.make({
+    var h = bridge.hand.make({
 	cards: [0, 1, 2, 13, 14, 15, 26, 27, 28, 39, 40, 41],
     });
     if (h.is_balanced() != true) {
@@ -614,7 +662,7 @@ bridge.test = function() {
     if (b.toString() != "7N") {
 	throw "Bad bid 35";
     }
-    hands = bridge.deal();
+    var hands = bridge.deal();
     if (hands.reduce(function(a, b) { return a + b.hc_points(); }, 0) != 40) {
 	throw "hand points don't sum to 40"
     }
