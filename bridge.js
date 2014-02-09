@@ -70,6 +70,9 @@ bridge.consts = {
     RANKS:   ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"],
     POINTS:  {"A": 4, "K": 3, "Q": 2, "J": 1},
     MAXBID:  7,
+    get_strain: function(c) {
+	return this.STRAINS.filter(function(s) {return s[0] == c;})[0];
+    },
 };
 
 /**************************************************************************
@@ -392,13 +395,62 @@ bridge.bid = bridge._object.extend({
 /**************************************************************************
  * Criterion
  **************************************************************************/
+
+// General criterion that takes the match function as an input and
+// does all operations by calling that function.  Downside is that it
+// could get slow, if the combination of criteria gets complicated,
+// and you probably won't be able to easily tell what a combination
+// of criteria means.
 bridge.crit = bridge._object.extend({
-    func: null,
     name: null,
+    match: function(hand, detail) {
+	return true;
+    },
+    invert: function() {
+	var _this = this;
+	return this.make({
+	    match: function(hand, detail) {
+		return !_this.match(hand, detail);
+	    },
+	});
+    },
+    compatible: function(other) {
+	return true;
+    },
+    assert_compatible: function(other) {
+	if (!this.compatible(other)) {
+	    throw "Can't operate on incompatible criteria: " + this + " and " + other;
+	}
+    },
+    union: function(other) {
+ 	this.assert_compatible(other);
+	var _this = this;
+	return this.make({
+	    match: function(hand, detail) {
+		return _this.match(hand, detail) || other.match(hand, detail);
+	    },
+	});
+    },
+    intersect: function() {
+ 	this.assert_compatible(other);
+	var _this = this;
+	return this.make({
+	    match: function(hand, detail) {
+		return _this.match(hand, detail) && other.match(hand, detail);
+	    },
+	});
+    },
+});
+
+// A criterion where you extract a value from a hand (with some
+// function which is provided by subclasses) and it must match a set
+// of accepted values.
+bridge.choice_crit = bridge.crit.extend({
+    func: null,
     values: [],
     allvalues: [],
     match: function(hand, detail) {
-	var handval = this.func(hand)
+	var handval = this.func(hand);
 	if (this.values.indexOf(handval) < 0) {
 	    if (detail) {
 		console.log("Bad " + name + ": " + handval +
@@ -416,6 +468,7 @@ bridge.crit = bridge._object.extend({
 	});
     },
     union: function(other) {
+ 	this.assert_compatible(other);
 	var _this = this;
 	return this.make({
 	    values: _this.allvalues.filter(function(x) {
@@ -425,6 +478,7 @@ bridge.crit = bridge._object.extend({
 	});
     },
     intersect: function(other) {
+ 	this.assert_compatible(other);
 	var _this = this;
 	return this.make({
 	    values: _this.allvalues.filter(function(x) {
@@ -435,15 +489,57 @@ bridge.crit = bridge._object.extend({
     },
 });
 
+// A criterion that matches hands that have a certain number of cards
+// of a given suit
+bridge.ncard_crit = bridge.choice_crit.extend({
+    suit: null,
+    func: function(h) { return h.by_suit[this.suit].length; },
+    allvalues: bridge.range(0, 14),
+    compatible: function(other) {
+	return this.suit == other.suit;
+    },
+});
+
+// A criterion that looks at a given variable of a hand
+bridge.vcrit = bridge._object.extend({
+    variable: null,
+    func: function(h) { return h[this.variable]; },
+    compatible: function(other) {
+	return this.variable == other.variable;
+    },
+});
+
+// A criterion that looks at a given method of a hand
+bridge.fcrit = bridge._object.extend({
+    fname: null,
+    func: function(h) { return h[this.fname](); },
+    compatible: function(other) {
+	return this.fname == other.fname;
+    },
+});
+
 /**************************************************************************
  * Hand Range
  **************************************************************************/
+// List of criterion, all of which must be true
 bridge.handrange = bridge._object.extend({
-    points:      bridge.range(1, 22),
-    nCLUBS:      bridge.range(1, 14),
-    nDIAMONDS:   bridge.range(1, 14),
-    nHEARTS:     bridge.range(1, 14),
-    nSPADES:     bridge.range(1, 14),
+    crits: [],
+});
+
+/**************************************************************************
+ * Hand Set
+ **************************************************************************/
+// List of criterion, any of which may be true
+bridge.handset = bridge._object.extend({
+});
+
+// old handrange
+bridge.handrange = bridge._object.extend({
+    points:      bridge.range(0, 22),
+    nCLUBS:      bridge.range(0, 14),
+    nDIAMONDS:   bridge.range(0, 14),
+    nHEARTS:     bridge.range(0, 14),
+    nSPADES:     bridge.range(0, 14),
     is_balanced: [true, false],
     match: function(hand, detail) {
 	// A hand much match all criteria to match.
@@ -564,6 +660,11 @@ bridge.strategy.make_rules = function(bid_history) {
 	    bridge.handrange.make({}),
 	], bridge.bid.make({str: "1C"})]);
     }
+    else if (bid_history[bid_history.length-3].toString() == "1N") {
+    }
+    else if (bid_history[bid_history.length-3].toString()[0] == "1") {
+
+    }
     else {
 	// XXX
     }
@@ -662,7 +763,21 @@ bridge.test = function() {
     if (b.toString() != "7N") {
 	throw "Bad bid 35";
     }
+    h = bridge.hand.make({
+	cards: bridge.range(0, 13),
+    });
     var hands = bridge.deal();
+    c = bridge.ncard_crit.make({suit: 'SPADES', values: bridge.range(0, 3),});
+    if (!c.match(h)) {
+	throw "Bad crit for hand:\n" + h;
+    }
+    for (var ii = 0; ii < hands.length; ii++) {
+	if ((hands[ii].by_suit['SPADES'].length > 2 && c.match(hands[ii])) || 
+	    (hands[ii].by_suit['SPADES'].length < 3 && !c.match(hands[ii])))
+	{
+	    throw "Bad crit for hand " + ii + "\n" + hands[ii];
+	}
+    }
     if (hands.reduce(function(a, b) { return a + b.hc_points(); }, 0) != 40) {
 	throw "hand points don't sum to 40"
     }
