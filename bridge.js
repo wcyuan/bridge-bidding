@@ -48,6 +48,11 @@ bridge._object = {
     },
 };
 
+bridge.is_same_type = function(first, second) {
+    return first.prototype.isPrototypeOf(second) &&
+	!second.prototype.isPrototypeOf(first);
+};
+
 bridge.range = function() {
     var start = 0;
     var step = 1;
@@ -426,14 +431,10 @@ bridge.crit = bridge._object.extend({
 	});
     },
     compatible: function(other) {
-	// XXX doesn't work...
-	return (this.prototype.isPrototypeOf(other) && 
-		other.prototype.isPrototypeOf(this));
+	return true;
     },
     assert_compatible: function(other) {
-	if ((this.prototype.compatible !== null && !this.prototype.compatible(other)) ||
-	    !this.compatible(other))
-	{
+	if (!this.compatible(other)) {
 	    throw "Can't operate on incompatible criteria: " + this + " and " + other;
 	}
     },
@@ -502,6 +503,9 @@ bridge.choice_crit = bridge.crit.extend({
 	    }),
 	});
     },
+    compatible: function(other) {
+	return bridge.is_same_type(this, other)
+    }
 });
 
 // A criterion that matches hands that have a certain number of cards
@@ -786,6 +790,8 @@ bridge.test = function() {
     if (!c.match(h)) {
 	throw "Bad crit for hand:\n" + h;
     }
+    var d = c.invert();
+    c.union(d);
     for (var ii = 0; ii < hands.length; ii++) {
 	if ((hands[ii].by_suit['SPADES'].length > 2 && c.match(hands[ii])) || 
 	    (hands[ii].by_suit['SPADES'].length < 3 && !c.match(hands[ii])))
