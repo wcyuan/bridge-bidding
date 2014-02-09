@@ -38,7 +38,8 @@ bridge._object = {
 	obj.prototype = this;
 	return obj;
     },
-    // Use make to make new instances
+    // Use make to make new instances (from a class or from an
+    // existing instance)
     make: function(props) {
 	var obj = this.clone(props);
 	obj.prototype = this.prototype;
@@ -418,25 +419,28 @@ bridge.crit = bridge._object.extend({
     },
     invert: function() {
 	var _this = this;
-	return this.prototype.make({
+	return this.make({
 	    match: function(hand, detail) {
 		return !_this.match(hand, detail);
 	    },
 	});
     },
     compatible: function(other) {
+	// XXX doesn't work...
 	return (this.prototype.isPrototypeOf(other) && 
 		other.prototype.isPrototypeOf(this));
     },
     assert_compatible: function(other) {
-	if (!this.compatible(other)) {
+	if ((this.prototype.compatible !== null && !this.prototype.compatible(other)) ||
+	    !this.compatible(other))
+	{
 	    throw "Can't operate on incompatible criteria: " + this + " and " + other;
 	}
     },
     union: function(other) {
  	this.assert_compatible(other);
 	var _this = this;
-	return this.prototype.make({
+	return this.make({
 	    match: function(hand, detail) {
 		return _this.match(hand, detail) || other.match(hand, detail);
 	    },
@@ -445,7 +449,7 @@ bridge.crit = bridge._object.extend({
     intersect: function() {
  	this.assert_compatible(other);
 	var _this = this;
-	return this.prototype.make({
+	return this.make({
 	    match: function(hand, detail) {
 		return _this.match(hand, detail) && other.match(hand, detail);
 	    },
@@ -473,7 +477,7 @@ bridge.choice_crit = bridge.crit.extend({
     },
     invert: function() {
 	var _this = this;
-	return this.prototype.make({
+	return this.make({
 	    values: _this.allvalues.filter(function(x) {
 		return _this.values.indexOf(x) < 0 }),
 	});
@@ -481,7 +485,7 @@ bridge.choice_crit = bridge.crit.extend({
     union: function(other) {
  	this.assert_compatible(other);
 	var _this = this;
-	return this.prototype.make({
+	return this.make({
 	    values: _this.allvalues.filter(function(x) {
 		return _this.values.indexOf(x) >= 0 || 
 		    other.values.indexOf(x) >= 0;
@@ -491,7 +495,7 @@ bridge.choice_crit = bridge.crit.extend({
     intersect: function(other) {
  	this.assert_compatible(other);
 	var _this = this;
-	return this.prototype.make({
+	return this.make({
 	    values: _this.allvalues.filter(function(x) {
 		return _this.values.indexOf(x) >= 0 &&
 		    other.values.indexOf(x) >= 0;
@@ -512,7 +516,7 @@ bridge.ncard_crit = bridge.choice_crit.extend({
 });
 
 // A criterion that looks at a given variable of a hand
-bridge.vcrit = bridge._object.extend({
+bridge.vcrit = bridge.choice_crit.extend({
     variable: null,
     func: function(h) { return h[this.variable]; },
     compatible: function(other) {
@@ -521,7 +525,7 @@ bridge.vcrit = bridge._object.extend({
 });
 
 // A criterion that looks at a given method of a hand
-bridge.fcrit = bridge._object.extend({
+bridge.fcrit = bridge.choice_crit.extend({
     fname: null,
     func: function(h) { return h[this.fname](); },
     compatible: function(other) {
@@ -533,7 +537,7 @@ bridge.fcrit = bridge._object.extend({
  * Hand Range
  **************************************************************************/
 // List of criterion, all of which must be true
-bridge.handrange = bridge._object.extend({
+bridge.handrange = bridge.crit.extend({
     crits: [],
 });
 
@@ -541,7 +545,7 @@ bridge.handrange = bridge._object.extend({
  * Hand Set
  **************************************************************************/
 // List of criterion, any of which may be true
-bridge.handset = bridge._object.extend({
+bridge.handset = bridge.crit.extend({
 });
 
 // old handrange
