@@ -19,7 +19,7 @@ var bridge = bridge || {};
 }());
 
 bridge._object = {
-    extend: function(props) {
+    clone: function(props) {
         var prop, obj;
         obj = Object.create(this);
         for(prop in props) {
@@ -32,8 +32,18 @@ bridge._object = {
     init: function() {
 	return this;
     },
+    // Use extend to make subclasses
+    extend: function(props) {
+	var obj = this.clone(props);
+	obj.prototype = this;
+	return obj;
+    },
+    // Use make to make new instances
     make: function(props) {
-	return this.extend(props).init();
+	var obj = this.clone(props);
+	obj.prototype = this.prototype;
+	obj.init();
+	return obj;
     },
 };
 
@@ -408,14 +418,15 @@ bridge.crit = bridge._object.extend({
     },
     invert: function() {
 	var _this = this;
-	return this.make({
+	return this.prototype.make({
 	    match: function(hand, detail) {
 		return !_this.match(hand, detail);
 	    },
 	});
     },
     compatible: function(other) {
-	return true;
+	return (this.prototype.isPrototypeOf(other) && 
+		other.prototype.isPrototypeOf(this));
     },
     assert_compatible: function(other) {
 	if (!this.compatible(other)) {
@@ -425,7 +436,7 @@ bridge.crit = bridge._object.extend({
     union: function(other) {
  	this.assert_compatible(other);
 	var _this = this;
-	return this.make({
+	return this.prototype.make({
 	    match: function(hand, detail) {
 		return _this.match(hand, detail) || other.match(hand, detail);
 	    },
@@ -434,7 +445,7 @@ bridge.crit = bridge._object.extend({
     intersect: function() {
  	this.assert_compatible(other);
 	var _this = this;
-	return this.make({
+	return this.prototype.make({
 	    match: function(hand, detail) {
 		return _this.match(hand, detail) && other.match(hand, detail);
 	    },
@@ -462,7 +473,7 @@ bridge.choice_crit = bridge.crit.extend({
     },
     invert: function() {
 	var _this = this;
-	return this.make({
+	return this.prototype.make({
 	    values: _this.allvalues.filter(function(x) {
 		return _this.values.indexOf(x) < 0 }),
 	});
@@ -470,7 +481,7 @@ bridge.choice_crit = bridge.crit.extend({
     union: function(other) {
  	this.assert_compatible(other);
 	var _this = this;
-	return this.make({
+	return this.prototype.make({
 	    values: _this.allvalues.filter(function(x) {
 		return _this.values.indexOf(x) >= 0 || 
 		    other.values.indexOf(x) >= 0;
@@ -480,7 +491,7 @@ bridge.choice_crit = bridge.crit.extend({
     intersect: function(other) {
  	this.assert_compatible(other);
 	var _this = this;
-	return this.make({
+	return this.prototype.make({
 	    values: _this.allvalues.filter(function(x) {
 		return _this.values.indexOf(x) >= 0 &&
 		    other.values.indexOf(x) >= 0;
