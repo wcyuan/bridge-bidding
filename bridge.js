@@ -418,10 +418,10 @@ bridge.bid = bridge._object.extend({
 // and you probably won't be able to easily tell what a combination
 // of criteria means.
 bridge.crit = bridge._object.extend({
-    desc: function() { return "MATCH_ALL"; },
-    match: function(hand, detail) {
-	return true;
+    desc: function() {
+	return this.match.toString();
     },
+    match: null,
     invert: function() {
 	var _this = this;
 	return this.make({
@@ -464,6 +464,18 @@ bridge.crit = bridge._object.extend({
 		return "(" + _this.desc() + " and " + other.desc() + ")";
 	    },
 	});
+    },
+    init: function() {
+	if (this.match === null) {
+	    this.match = function(hand, detail) {
+		return true;
+	    };
+	    if (this.desc === null) {
+		this.desc = function(hand, detail) {
+		    return "MATCH_ALL";
+		};
+	    }
+	}
     },
 });
 
@@ -564,7 +576,7 @@ bridge.fcrit = bridge.choice_crit.extend({
  **************************************************************************/
 // A criterion which is made up of a list of sub-criteria.  This
 // criterion is true if all of the sub-criteria are true.
-bridge.or_crit = bridge.crit.extend({
+bridge.and_crit = bridge.crit.extend({
     crits: [],
     match: function(hand, detail) {
 	for (var ii = 0; ii < this.crits.length; ii++) {
@@ -573,6 +585,9 @@ bridge.or_crit = bridge.crit.extend({
 	    }
 	}
 	return true;
+    },
+    desc: function() {
+	return desc.crits.map(function(c) { return c.desc(); }).join(' AND ');
     },
 });
 
@@ -591,6 +606,9 @@ bridge.or_crit = bridge.crit.extend({
 	}
 	return false;
     },
+    desc: function() {
+	return desc.crits.map(function(c) { return c.desc(); }).join(' OR ');
+    },
 });
 
 /**************************************************************************
@@ -598,6 +616,7 @@ bridge.or_crit = bridge.crit.extend({
  **************************************************************************/
 // A criterion which is made up of a list of sub-criteria.  This
 // criterion is true if all of the sub-criteria are true.
+// This is unused
 bridge.handrange = bridge.crit.extend({
     crits: [],
     match: function(hand, detail) {
@@ -648,18 +667,19 @@ bridge.handrange = bridge.crit.extend({
  * Old Handrange
  **************************************************************************/
 bridge.handrange = bridge.crit.extend({
-    points:      bridge.range(0, 22),
-    nCLUBS:      bridge.range(0, 14),
-    nDIAMONDS:   bridge.range(0, 14),
-    nHEARTS:     bridge.range(0, 14),
-    nSPADES:     bridge.range(0, 14),
-    is_balanced: [true, false],
+    points:      null,
+    nCLUBS:      null,
+    nDIAMONDS:   null,
+    nHEARTS:     null,
+    nSPADES:     null,
+    is_balanced: null,
+    vars: ['points', 'nCLUBS', 'nDIAMONDS', 'nHEARTS', 'nSPADES', 'is_balanced'],
     match: function(hand, detail) {
 	// A hand much match all criteria to match.
 	if (detail === null) {
 	    detail = false;
 	}
-	if (this.points.indexOf(hand.points()) < 0) {
+	if (this.points !== null && this.points.indexOf(hand.points()) < 0) {
 	    if (detail) {
 		console.log("Bad points: " + hand.points() + " not in " + this.points);
 	    }
@@ -667,7 +687,9 @@ bridge.handrange = bridge.crit.extend({
 	}
 	for (var ss = 0; ss < bridge.consts.SUITS.length; ss++) {
 	    suit = bridge.consts.SUITS[ss];
-	    if (this["n" + suit].indexOf(hand.by_suit[suit].length) < 0) {
+	    if (this["n" + suit] !== null &&
+		this["n" + suit].indexOf(hand.by_suit[suit].length) < 0)
+	    {
 		if (detail) {
 		    console.log("Bad " + suit + ": " + hand.by_suit[suit].length +
 				" not in " + this["n" + suit]);
@@ -675,7 +697,9 @@ bridge.handrange = bridge.crit.extend({
 		return false;
 	    }
 	}
-	if (this.is_balanced.indexOf(hand.is_balanced()) < 0) {
+	if (this.is_balanced !== null &&
+	    this.is_balanced.indexOf(hand.is_balanced()) < 0)
+	{
 	    if (detail) {
 		console.log("Bad is_balanced: " + hand.is_balanced() +
 			    " not in " + this.is_balanced);
@@ -684,6 +708,14 @@ bridge.handrange = bridge.crit.extend({
 	}
 	return true;
     },
+    desc: function() {
+	var _this = this;
+	return this.vars.filter(function(v) {
+	    return _this[v] !== null;
+	}).map(function(v) {
+	    return "(" + v + " in " + _this[v] + ")";
+	}).join(' AND ');
+    }
 });
 
 /**************************************************************************
@@ -727,7 +759,7 @@ bridge.strategy.make_rules = function(bid_history) {
     var rules = [];
     if (bridge.strategy.is_opening(bid_history)) {
 	rules.push([
-	    bridge.handrange.make({points: bridge.range(1, 13)}),
+	    bridge.handrange.make({points: bridge.range(0, 13)}),
 	    bridge.bid.make({str: "PS"})]);
 
 	rules.push([
@@ -735,10 +767,10 @@ bridge.strategy.make_rules = function(bid_history) {
 				  is_balanced: [true]}),
 	    bridge.bid.make({str: "1N"})]);
 
-	rules.push([bridge.or_crit.make({crit: [
+	rules.push([bridge.or_crit.make({crits: [
  	    bridge.handrange.make({nSPADES: bridge.range(7, 14)}),
-	    bridge.handrange.make({nSPADES: [6], nHEARTS: bridge.range(1, 6)}),
-	    bridge.handrange.make({nSPADES: [5], nHEARTS: bridge.range(1, 5)}),
+	    bridge.handrange.make({nSPADES: [6], nHEARTS: bridge.range(0, 6)}),
+	    bridge.handrange.make({nSPADES: [5], nHEARTS: bridge.range(0, 5)}),
 	]}), bridge.bid.make({str: "1S"})]);
 
 	rules.push([
@@ -749,11 +781,11 @@ bridge.strategy.make_rules = function(bid_history) {
 	    bridge.handrange.make({nDIAMONDS: [3], nCLUBS: [3]}),
 	    bridge.bid.make({str: "1C"})]);
 
-	rules.push([bridge.or_crit.make({crit: [
+	rules.push([bridge.or_crit.make({crits: [
 	    bridge.handrange.make({nDIAMONDS: bridge.range(7, 14)}),
-	    bridge.handrange.make({nDIAMONDS: [6], nCLUBS: bridge.range(1, 7)}),
-	    bridge.handrange.make({nDIAMONDS: [5], nCLUBS: bridge.range(1, 6)}),
-	    bridge.handrange.make({nDIAMONDS: [4], nCLUBS: bridge.range(1, 5)}),
+	    bridge.handrange.make({nDIAMONDS: [6], nCLUBS: bridge.range(0, 7)}),
+	    bridge.handrange.make({nDIAMONDS: [5], nCLUBS: bridge.range(0, 6)}),
+	    bridge.handrange.make({nDIAMONDS: [4], nCLUBS: bridge.range(0, 5)}),
 	]}), bridge.bid.make({str: "1D"})]);
 
 	rules.push([
