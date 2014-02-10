@@ -418,7 +418,7 @@ bridge.bid = bridge._object.extend({
 // and you probably won't be able to easily tell what a combination
 // of criteria means.
 bridge.crit = bridge._object.extend({
-    name: null,
+    desc: function() { return "MATCH_ALL"; },
     match: function(hand, detail) {
 	return true;
     },
@@ -427,6 +427,9 @@ bridge.crit = bridge._object.extend({
 	return this.make({
 	    match: function(hand, detail) {
 		return !_this.match(hand, detail);
+	    },
+	    desc: function() {
+		return "(not " + _this.desc() + ")";
 	    },
 	});
     },
@@ -445,6 +448,9 @@ bridge.crit = bridge._object.extend({
 	    match: function(hand, detail) {
 		return _this.match(hand, detail) || other.match(hand, detail);
 	    },
+	    desc: function() {
+		return "(" + _this.desc() + " or " + other.desc() + ")";
+	    },
 	});
     },
     intersect: function(other) {
@@ -453,6 +459,9 @@ bridge.crit = bridge._object.extend({
 	return this.make({
 	    match: function(hand, detail) {
 		return _this.match(hand, detail) && other.match(hand, detail);
+	    },
+	    desc: function() {
+		return "(" + _this.desc() + " and " + other.desc() + ")";
 	    },
 	});
     },
@@ -463,13 +472,14 @@ bridge.crit = bridge._object.extend({
 // of accepted values.
 bridge.choice_crit = bridge.crit.extend({
     func: null,
+    name: null,
     values: [],
     allvalues: [],
     match: function(hand, detail) {
 	var handval = this.func(hand);
 	if (this.values.indexOf(handval) < 0) {
 	    if (detail) {
-		console.log("Bad " + name + ": " + handval +
+		console.log("Bad value: " + handval +
 			    " not in " + this.values);
 	    }
 	    return false;
@@ -505,7 +515,10 @@ bridge.choice_crit = bridge.crit.extend({
     },
     compatible: function(other) {
 	return bridge.is_same_type(this, other)
-    }
+    },
+    desc: function() {
+	return this.name + " in " + this.values;
+    },
 });
 
 // A criterion that matches hands that have a certain number of cards
@@ -517,6 +530,9 @@ bridge.ncard_crit = bridge.choice_crit.extend({
     compatible: function(other) {
 	return bridge.is_same_type(this, other) && this.suit == other.suit;
     },
+    init: function() {
+	this.name = "num " + this.suit + "s";
+    }
 });
 
 // A criterion that looks at a given variable of a hand
@@ -526,6 +542,9 @@ bridge.vcrit = bridge.choice_crit.extend({
     compatible: function(other) {
 	return bridge.is_same_type(this, other) && this.variable == other.variable;
     },
+    init: function() {
+	this.name = this.variable;
+    }
 });
 
 // A criterion that looks at a given method of a hand
@@ -535,6 +554,9 @@ bridge.fcrit = bridge.choice_crit.extend({
     compatible: function(other) {
 	return bridge.is_same_type(this, other) && this.fname == other.fname;
     },
+    init: function() {
+	this.name = this.fname + "()";
+    }
 });
 
 /**************************************************************************
@@ -704,39 +726,39 @@ bridge.strategy.make_rules = function(bid_history) {
     // your partner passed.
     var rules = [];
     if (bridge.strategy.is_opening(bid_history)) {
-	rules.push([[
+	rules.push([
 	    bridge.handrange.make({points: bridge.range(1, 13)}),
-	], bridge.bid.make({str: "PS"})]);
+	    bridge.bid.make({str: "PS"})]);
 
-	rules.push([[
+	rules.push([
 	    bridge.handrange.make({points: bridge.range(16, 19),
 				  is_balanced: [true]}),
-	], bridge.bid.make({str: "1N"})]);
+	    bridge.bid.make({str: "1N"})]);
 
-	rules.push([[
+	rules.push([bridge.or_crit.make({crit: [
  	    bridge.handrange.make({nSPADES: bridge.range(7, 14)}),
 	    bridge.handrange.make({nSPADES: [6], nHEARTS: bridge.range(1, 6)}),
 	    bridge.handrange.make({nSPADES: [5], nHEARTS: bridge.range(1, 5)}),
-	], bridge.bid.make({str: "1S"})]);
+	]}), bridge.bid.make({str: "1S"})]);
 
-	rules.push([[
+	rules.push([
 	    bridge.handrange.make({nHEARTS: bridge.range(5, 14)}),
-	], bridge.bid.make({str: "1H"})]);
+	    bridge.bid.make({str: "1H"})]);
 
-	rules.push([[
+	rules.push([
 	    bridge.handrange.make({nDIAMONDS: [3], nCLUBS: [3]}),
-	], bridge.bid.make({str: "1C"})]);
+	    bridge.bid.make({str: "1C"})]);
 
-	rules.push([[
+	rules.push([bridge.or_crit.make({crit: [
 	    bridge.handrange.make({nDIAMONDS: bridge.range(7, 14)}),
 	    bridge.handrange.make({nDIAMONDS: [6], nCLUBS: bridge.range(1, 7)}),
 	    bridge.handrange.make({nDIAMONDS: [5], nCLUBS: bridge.range(1, 6)}),
 	    bridge.handrange.make({nDIAMONDS: [4], nCLUBS: bridge.range(1, 5)}),
-	], bridge.bid.make({str: "1D"})]);
+	]}), bridge.bid.make({str: "1D"})]);
 
-	rules.push([[
-	    bridge.handrange.make({}),
-	], bridge.bid.make({str: "1C"})]);
+	rules.push([
+	    bridge.crit.make({}),
+	    bridge.bid.make({str: "1C"})]);
     }
     else if (bid_history[bid_history.length-3].toString() == "1N") {
     }
@@ -775,11 +797,9 @@ bridge.strategy.interpret_bid = function(bid_history, hand) {
     var handrange = bridge.crit.make({});
     for (var rr = 0; rr < rules.length; rr++) {
 	if (last_bid == rules[rr][1]) {
-	    console.log("here");
 	    handrange = handrange.intersect(rules[rr][0].invert());
 	}
 	else {
-	    console.log("there");
 	    return handrange.intersect(rules[rr][0]);
 	}
     }
