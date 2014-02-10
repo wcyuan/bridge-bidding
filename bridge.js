@@ -53,6 +53,8 @@ bridge.is_same_type = function(first, second) {
 	second.prototype.isPrototypeOf(first);
 };
 
+// range: a function that returns a list of ints from start to end,
+// inclusive.
 bridge.range = function() {
     var start = 0;
     var step = 1;
@@ -70,7 +72,7 @@ bridge.range = function() {
 	step = arguments[2];
     }
     var retval = [];
-    for (var ii = start; ii < end; ii += step) {
+    for (var ii = start; ii <= end; ii += step) {
 	retval.push(ii);
     }
     return retval;
@@ -540,7 +542,7 @@ bridge.choice_crit = bridge.crit.extend({
 bridge.ncard_crit = bridge.choice_crit.extend({
     suit: null,
     func: function(h) { return h.by_suit[this.suit].length; },
-    allvalues: bridge.range(0, 14),
+    allvalues: bridge.range(0, 12),
     compatible: function(other) {
 	return bridge.is_same_type(this, other) && this.suit == other.suit;
     },
@@ -609,7 +611,7 @@ bridge.or_crit = bridge.crit.extend({
 	return false;
     },
     desc: function() {
-	return desc.crits.map(function(c) { return c.desc(); }).join(' OR ');
+	return this.crits.map(function(c) { return c.desc(); }).join(' OR ');
     },
 });
 
@@ -761,22 +763,22 @@ bridge.strategy.make_rules = function(bid_history) {
     var rules = [];
     if (bridge.strategy.is_opening(bid_history)) {
 	rules.push([
-	    bridge.handrange.make({points: bridge.range(0, 13)}),
+	    bridge.handrange.make({points: bridge.range(0, 12)}),
 	    bridge.bid.make({str: "PS"})]);
 
 	rules.push([
-	    bridge.handrange.make({points: bridge.range(16, 19),
+	    bridge.handrange.make({points: bridge.range(16, 18),
 				  is_balanced: [true]}),
 	    bridge.bid.make({str: "1N"})]);
 
 	rules.push([bridge.or_crit.make({crits: [
- 	    bridge.handrange.make({nSPADES: bridge.range(7, 14)}),
-	    bridge.handrange.make({nSPADES: [6], nHEARTS: bridge.range(0, 6)}),
-	    bridge.handrange.make({nSPADES: [5], nHEARTS: bridge.range(0, 5)}),
+ 	    bridge.handrange.make({nSPADES: bridge.range(7, 13)}),
+	    bridge.handrange.make({nSPADES: [6], nHEARTS: bridge.range(0, 5)}),
+	    bridge.handrange.make({nSPADES: [5], nHEARTS: bridge.range(0, 4)}),
 	]}), bridge.bid.make({str: "1S"})]);
 
 	rules.push([
-	    bridge.handrange.make({nHEARTS: bridge.range(5, 14)}),
+	    bridge.handrange.make({nHEARTS: bridge.range(5, 13)}),
 	    bridge.bid.make({str: "1H"})]);
 
 	rules.push([
@@ -784,10 +786,10 @@ bridge.strategy.make_rules = function(bid_history) {
 	    bridge.bid.make({str: "1C"})]);
 
 	rules.push([bridge.or_crit.make({crits: [
-	    bridge.handrange.make({nDIAMONDS: bridge.range(7, 14)}),
-	    bridge.handrange.make({nDIAMONDS: [6], nCLUBS: bridge.range(0, 7)}),
-	    bridge.handrange.make({nDIAMONDS: [5], nCLUBS: bridge.range(0, 6)}),
-	    bridge.handrange.make({nDIAMONDS: [4], nCLUBS: bridge.range(0, 5)}),
+	    bridge.handrange.make({nDIAMONDS: bridge.range(7, 13)}),
+	    bridge.handrange.make({nDIAMONDS: [6], nCLUBS: bridge.range(0, 6)}),
+	    bridge.handrange.make({nDIAMONDS: [5], nCLUBS: bridge.range(0, 5)}),
+	    bridge.handrange.make({nDIAMONDS: [4], nCLUBS: bridge.range(0, 4)}),
 	]}), bridge.bid.make({str: "1D"})]);
 
 	rules.push([
@@ -795,6 +797,53 @@ bridge.strategy.make_rules = function(bid_history) {
 	    bridge.bid.make({str: "1C"})]);
     }
     else if (bid_history[bid_history.length-3].toString() == "1N") {
+	rules.push([
+	    bridge.handrange.make({points: bridge.range(0, 7), nSPADES: bridge.range(5, 13)}),
+	    bridge.bid.make({str: "1S"})]);
+
+	rules.push([
+	    bridge.handrange.make({points: bridge.range(0, 7), nHEARTS: bridge.range(5, 13)}),
+	    bridge.bid.make({str: "1H"})]);
+
+	rules.push([
+	    bridge.handrange.make({points: bridge.range(0, 7), nCLUBS: bridge.range(5, 13)}),
+	    bridge.bid.make({str: "1D"})]);
+
+ 	rules.push([
+	    bridge.handrange.make({points: bridge.range(0, 7), nDIAMONDS: bridge.range(5, 13)}),
+	    bridge.bid.make({str: "1C"})]);
+
+ 	rules.push([
+	    bridge.handrange.make({points: bridge.range(0, 7)}),
+	    bridge.bid.make({str: "PS"})]);
+
+ 	rules.push([
+	    bridge.handrange.make({points: bridge.range(8, 9)}),
+	    bridge.bid.make({str: "2N"})]);
+
+ 	rules.push([
+	    bridge.handrange.make({points: bridge.range(8, 9)}),
+	    bridge.bid.make({str: "2N"})]);
+
+ 	rules.push([
+	    bridge.handrange.make({points: bridge.range(10,40), nSPADES: bridge.range(6, 13)}),
+	    bridge.bid.make({str: "4S"})]);
+
+ 	rules.push([
+	    bridge.handrange.make({points: bridge.range(10,40), nHEARTS: bridge.range(6, 13)}),
+	    bridge.bid.make({str: "4H"})]);
+
+ 	rules.push([
+	    bridge.handrange.make({points: bridge.range(10,40), nSPADES: [5]}),
+	    bridge.bid.make({str: "3S"})]);
+
+ 	rules.push([
+	    bridge.handrange.make({points: bridge.range(10,40), nHEARTS: [5]}),
+	    bridge.bid.make({str: "3H"})]);
+
+ 	rules.push([
+	    bridge.handrange.make({points: bridge.range(10,40)}),
+	    bridge.bid.make({str: "3N"})]);
     }
     else if (bid_history[bid_history.length-3].toString()[0] == "1") {
 
@@ -830,7 +879,7 @@ bridge.strategy.interpret_bid = function(bid_history, hand) {
     var rules = bridge.strategy.make_rules(bid_history);
     var handrange = bridge.crit.make({});
     for (var rr = 0; rr < rules.length; rr++) {
-	if (last_bid == rules[rr][1]) {
+	if (last_bid != rules[rr][1]) {
 	    handrange = handrange.intersect(rules[rr][0].invert());
 	}
 	else {
@@ -898,10 +947,10 @@ bridge.test = function() {
 	throw "Bad bid 35";
     }
     h = bridge.hand.make({
-	cards: bridge.range(0, 13),
+	cards: bridge.range(0, 12),
     });
     var hands = bridge.deal();
-    c = bridge.ncard_crit.make({suit: 'SPADES', values: bridge.range(0, 3),});
+    c = bridge.ncard_crit.make({suit: 'SPADES', values: bridge.range(0, 2),});
     if (!c.match(h)) {
 	throw "Bad crit for hand:\n" + h;
     }
