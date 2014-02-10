@@ -515,7 +515,7 @@ bridge.ncard_crit = bridge.choice_crit.extend({
     func: function(h) { return h.by_suit[this.suit].length; },
     allvalues: bridge.range(0, 14),
     compatible: function(other) {
-	return this.suit == other.suit;
+	return bridge.is_same_type(this, other) && this.suit == other.suit;
     },
 });
 
@@ -524,7 +524,7 @@ bridge.vcrit = bridge.choice_crit.extend({
     variable: null,
     func: function(h) { return h[this.variable]; },
     compatible: function(other) {
-	return this.variable == other.variable;
+	return bridge.is_same_type(this, other) && this.variable == other.variable;
     },
 });
 
@@ -533,26 +533,98 @@ bridge.fcrit = bridge.choice_crit.extend({
     fname: null,
     func: function(h) { return h[this.fname](); },
     compatible: function(other) {
-	return this.fname == other.fname;
+	return bridge.is_same_type(this, other) && this.fname == other.fname;
     },
 });
 
 /**************************************************************************
- * Hand Range
+ * And-criterion
  **************************************************************************/
-// List of criterion, all of which must be true
-bridge.handrange = bridge.crit.extend({
+// A criterion which is made up of a list of sub-criteria.  This
+// criterion is true if all of the sub-criteria are true.
+bridge.or_crit = bridge.crit.extend({
     crits: [],
+    match: function(hand, detail) {
+	for (var ii = 0; ii < this.crits.length; ii++) {
+	    if (this.crits[ii].match(hand, detail)) {
+		return false;
+	    }
+	}
+	return true;
+    },
 });
 
 /**************************************************************************
- * Hand Set
+ * Or-criterion
  **************************************************************************/
-// List of criterion, any of which may be true
-bridge.handset = bridge.crit.extend({
+// A criterion which is made up of a list of sub-criteria.  This
+// criterion is true if any of the sub-criteria are true.
+bridge.or_crit = bridge.crit.extend({
+    crits: [],
+    match: function(hand, detail) {
+	for (var ii = 0; ii < this.crits.length; ii++) {
+	    if (this.crits[ii].match(hand, detail)) {
+		return true;
+	    }
+	}
+	return false;
+    },
 });
 
-// old handrange
+/**************************************************************************
+ * New Hand Range
+ **************************************************************************/
+// A criterion which is made up of a list of sub-criteria.  This
+// criterion is true if all of the sub-criteria are true.
+bridge.handrange = bridge.crit.extend({
+    crits: [],
+    match: function(hand, detail) {
+	for (var ii = 0; ii < this.crits.length; ii++) {
+	    if (!this.crits[ii].match(hand, detail)) {
+		return false;
+	    }
+	}
+	return true;
+    },
+    invert: function() {
+	return bridge.handset.make({crits: this.crit.map(
+	    function(c) {return c.invert();}
+	});
+    },
+    union: function(other) {
+	if (this.crits.length == 1 && other.crits.length == 1 && this.compatible(other)) {
+	    return this.make({
+		crits: [this.crits[0].union(other.crits[0])],
+	    });
+	} else {
+	    return bridge.handset.make({crits: [this, other]});
+	}
+    },
+    intersect: function(other) {
+	var newobj = this.make();
+	for (var ii = 0; ii < other.crits.length; ii++) {
+	    var matched = false;
+	    for (var jj = 0; jj < newobj.crits.length; jj++) {
+		if (newobj.crits[jj].compatible(other.crits[ii])) {
+		    newobj.crits[jj] = newobj.crits[jj].intersect(other.crits[ii]);
+		    matched = true;
+		    break;
+		}
+	    }
+	    if (!matched) {
+		newobj.crits.push(other.crits[ii]);
+	    }
+	}
+	return newobj;
+    },
+    compatible: function(other) {
+	return bridge.is_same_type(this, other);
+    },
+});
+
+/**************************************************************************
+ * Old Handrange
+ **************************************************************************/
 bridge.handrange = bridge._object.extend({
     points:      bridge.range(0, 22),
     nCLUBS:      bridge.range(0, 14),
