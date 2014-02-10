@@ -759,7 +759,7 @@ bridge.strategy.is_opening = function(bid_history) {
 
 bridge.strategy.is_opening_response = function(bid_history) {
     return (bid_history.length > 1 &&
-	    bridge_strategy.is_opening(bid_history.slice(0, bid_history.length-2)));
+	    bridge.strategy.is_opening(bid_history.slice(0, bid_history.length-2)));
 };
 
 bridge.strategy.make_rules = function(bid_history) {
@@ -870,10 +870,8 @@ bridge.strategy.make_rules = function(bid_history) {
 bridge.strategy.make_bid = function(bid_history, hand) {
     var rules = bridge.strategy.make_rules(bid_history);
     for (var rr = 0; rr < rules.length; rr++) {
-	for (var h = 0; h < rules[rr][0].length; h++) {
-	    if (rules[rr][0][h].match(hand)) {
-		return rules[rr][1];
-	    }
+	if (rules[rr][0].match(hand)) {
+	    return rules[rr][1];
 	}
     }
     throw "Incomplete bid rules"
