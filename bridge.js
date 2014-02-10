@@ -418,9 +418,7 @@ bridge.bid = bridge._object.extend({
 // and you probably won't be able to easily tell what a combination
 // of criteria means.
 bridge.crit = bridge._object.extend({
-    desc: function() {
-	return this.match.toString();
-    },
+    desc: null,
     match: null,
     invert: function() {
 	var _this = this;
@@ -475,6 +473,10 @@ bridge.crit = bridge._object.extend({
 		    return "MATCH_ALL";
 		};
 	    }
+	} else if (this.desc === null) {
+	    this.desc = function() {
+		return this.match.toString();
+	    };
 	}
     },
 });
