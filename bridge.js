@@ -754,7 +754,12 @@ bridge.strategy = {};
 bridge.strategy.is_opening = function(bid_history) {
     return (bid_history.length < 2 ||
 	    bid_history.length < 4 &&
-	    bid_history[bid_history.length-3].toString() == "PS");
+	    bid_history[bid_history.length-2].toString() == "PS");
+};
+
+bridge.strategy.is_opening_response = function(bid_history) {
+    return (bid_history.length > 1 &&
+	    bridge_strategy.is_opening(bid_history.slice(0, bid_history.length-2)));
 };
 
 bridge.strategy.make_rules = function(bid_history) {
@@ -796,7 +801,9 @@ bridge.strategy.make_rules = function(bid_history) {
 	    bridge.crit.make({}),
 	    bridge.bid.make({str: "1C"})]);
     }
-    else if (bid_history[bid_history.length-3].toString() == "1N") {
+    else if (bridge.strategy.is_opening_response(bid_history) &&
+	     bid_history[bid_history.length-2].toString() == "1N")
+    {
 	rules.push([
 	    bridge.handrange.make({points: bridge.range(0, 7), nSPADES: bridge.range(5, 13)}),
 	    bridge.bid.make({str: "1S"})]);
@@ -845,8 +852,10 @@ bridge.strategy.make_rules = function(bid_history) {
 	    bridge.handrange.make({points: bridge.range(10,40)}),
 	    bridge.bid.make({str: "3N"})]);
     }
-    else if (bid_history[bid_history.length-3].toString()[0] == "1") {
-
+    else if (bridge.strategy.is_opening_response(bid_history) &&
+	     bid_history[bid_history.length-2].toString()[0] == "1")
+    {
+	
     }
     else {
 	// XXX
