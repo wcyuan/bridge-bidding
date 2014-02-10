@@ -76,7 +76,7 @@ bridge.range = function() {
         retval.push(ii);
     }
     return retval;
-}
+};
 
 /**************************************************************************
  * Constants
@@ -222,7 +222,7 @@ bridge.shuffle = function() {
     for (var ii = 0; ii < bridge.deck.length; ii++) {
         deck.push(ii);
     }
-    for (var ii = 0; ii < bridge.deck.length; ii++) {
+    for (ii = 0; ii < bridge.deck.length; ii++) {
         var rand = Math.floor((Math.random()*bridge.deck.length));
         var tmp = deck[rand];
         deck[rand] = deck[ii];
@@ -260,11 +260,11 @@ bridge.hand = bridge._object.extend({
             }
         }
         this.by_suit = {};
-        for (var ii = 0; ii < bridge.consts.SUITS.length; ii++) {
+        for (ii = 0; ii < bridge.consts.SUITS.length; ii++) {
             this.by_suit[bridge.consts.SUITS[ii]] = [];
         }
         this.cards.sort(function(a,b) {return b.id - a.id});
-        for (var ii = 0; ii < this.cards.length; ii++) {
+        for (ii = 0; ii < this.cards.length; ii++) {
             this.by_suit[this.cards[ii].suit].push(this.cards[ii]);
         }
         return this;
@@ -309,11 +309,12 @@ bridge.hand = bridge._object.extend({
     },
 
     toString: function() {
+        var _this = this;
         return bridge.consts.SUITS.map(
             function(s) {
                 return s.substring(0, 1)
                     + ": "
-                    + this.by_suit[s].map(
+                    + _this.by_suit[s].map(
                         function(c) {return c.rank;}
                     ).join('');}, this
         ).join("\n");
@@ -338,7 +339,7 @@ bridge.bid = bridge._object.extend({
                     this.id = 0;
                 }
                 else {
-                    this.level = parseInt(this.str.substring(0, 1));
+                    this.level = parseInt(this.str.substring(0, 1), 10);
                     var strain_char = this.str.substring(1, 2);
                     for (var ii = 0; ii < bridge.consts.STRAINS.length; ii++) {
                         if (strain_char ==
@@ -393,7 +394,7 @@ bridge.bid = bridge._object.extend({
             }
             this.id = (this.level-1) * bridge.consts.STRAINS.length + this.strain_id;
         }
-        else if (this.id != 0) {
+        else if (this.id !== 0) {
             if (this.level === null) {
                 this.level = Math.floor((this.id-1) / bridge.consts.STRAINS.length) + 1;
             }
@@ -406,7 +407,7 @@ bridge.bid = bridge._object.extend({
     },
 
     toString: function() {
-        if (this.id == 0) {
+        if (this.id === 0) {
             return "PS";
         }
         return this.level + this.strain.substring(0, 1);
@@ -541,7 +542,7 @@ bridge.choice_crit = bridge.crit.extend({
         });
     },
     compatible: function(other) {
-        return bridge.is_same_type(this, other)
+        return bridge.is_same_type(this, other);
     },
     desc: function() {
         return this.name + " in " + this.values;
@@ -602,7 +603,7 @@ bridge.and_crit = bridge.crit.extend({
         return true;
     },
     desc: function() {
-        return desc.crits.map(function(c) { return c.desc(); }).join(' AND ');
+        return this.crits.map(function(c) { return c.desc(); }).join(' AND ');
     },
 });
 
@@ -701,7 +702,7 @@ bridge.handrange = bridge.crit.extend({
             return false;
         }
         for (var ss = 0; ss < bridge.consts.SUITS.length; ss++) {
-            suit = bridge.consts.SUITS[ss];
+            var suit = bridge.consts.SUITS[ss];
             if (this["n" + suit] !== null &&
                 this["n" + suit].indexOf(hand.by_suit[suit].length) < 0)
             {
@@ -938,7 +939,7 @@ bridge.strategy.make_bid = function(bid_history, hand) {
             return rules[rr][1];
         }
     }
-    throw "Incomplete bid rules"
+    throw "Incomplete bid rules";
 };
 
 // Given a bid history (and a hand), return possible hand ranges for
@@ -973,7 +974,7 @@ bridge.auction = function(hands) {
         console.log("points: " + hands[hh].points());
     }
     var bids = [];
-    var hh = 0;
+    hh = 0;
     var npasses = 0;
     while (true) {
         var bid = bridge.strategy.make_bid(bids, hands[hh]);
@@ -989,7 +990,7 @@ bridge.auction = function(hands) {
         bids.push(bid);
         hh = (hh + 1) % hands.length;
     }
-}
+};
 
 /**************************************************************************
  * Unit Tests
@@ -1015,17 +1016,17 @@ bridge.test = function() {
     var h = bridge.hand.make({
         cards: [0, 1, 2, 13, 14, 15, 26, 27, 28, 39, 40, 41],
     });
-    if (h.is_balanced() != true) {
+    if (h.is_balanced() !== true) {
         throw "Unbalanced";
     }
-    if (h.hc_points() != 0) {
+    if (h.hc_points() !== 0) {
         throw "Wrong points";
     }
     h = bridge.hand.make({
         cards: ["9S", "8S", "7S", "6S", "3S", "9H", "8H",
                 "KD", "4D", "AC", "QC", "8C", "3C"],
     });
-    if (h.is_balanced() != false) {
+    if (h.is_balanced() !== false) {
         throw "Shouldn't be balanced";
     }
     if (h.hc_points() != 9) {
@@ -1059,14 +1060,14 @@ bridge.test = function() {
     var d = c.invert();
     c.union(d);
     for (var ii = 0; ii < hands.length; ii++) {
-        if ((hands[ii].by_suit['SPADES'].length > 2 && c.match(hands[ii])) ||
-            (hands[ii].by_suit['SPADES'].length < 3 && !c.match(hands[ii])))
+        if ((hands[ii].by_suit.SPADES.length > 2 && c.match(hands[ii])) ||
+            (hands[ii].by_suitSPADES.length < 3 && !c.match(hands[ii])))
         {
             throw "Bad crit for hand " + ii + "\n" + hands[ii];
         }
     }
     if (hands.reduce(function(a, b) { return a + b.hc_points(); }, 0) != 40) {
-        throw "hand points don't sum to 40"
+        throw "hand points don't sum to 40";
     }
     return hands;
 };
