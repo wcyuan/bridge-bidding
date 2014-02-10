@@ -125,14 +125,14 @@ bridge.card = bridge._object.extend({
 	}
 	if (this.id !== null &&
 	    (this.id < 1 ||
-	    this.id > bridge.consts.SUITS.length * bridge.consts.RANKS.length))
+	     this.id > bridge.consts.SUITS.length * bridge.consts.RANKS.length))
 	{
 	    throw "Invalid card id: " + this.id;
 	}
 
 	if (this.suit_id !== null &&
 	    (this.suit_id < 1 ||
-	    this.suit_id > bridge.consts.SUITS.length))
+	     this.suit_id > bridge.consts.SUITS.length))
 	{
 	    throw "Invalid suit_id: " + this.suit_id;
 	}
@@ -151,7 +151,7 @@ bridge.card = bridge._object.extend({
 
 	if (this.rank_id !== null &&
 	    (this.rank_id < 1 ||
-	    this.rank_id > bridge.consts.RANKS.length))
+	     this.rank_id > bridge.consts.RANKS.length))
 	{
 	    throw "Invalid rank_id: " + this.rank_id;
 	}
@@ -180,7 +180,7 @@ bridge.card = bridge._object.extend({
 					  bridge.consts.RANKS.length) + 1;
 		this.suit = bridge.consts.SUITS[this.suit_id-1];
 	    }
-           if (this.rank === null) {
+            if (this.rank === null) {
 		this.rank_id = (this.id-1) % bridge.consts.RANKS.length + 1;
 		this.rank = bridge.consts.RANKS[this.rank_id-1];
 	    }
@@ -355,7 +355,7 @@ bridge.bid = bridge._object.extend({
 
 	if (this.id !== null &&
 	    (this.id < 0 ||
-	    this.id > bridge.consts.STRAINS.length * bridge.consts.MAXBID))
+	     this.id > bridge.consts.STRAINS.length * bridge.consts.MAXBID))
 	{
 	    throw "Invalid bid id: " + this.id;
 	}
@@ -786,7 +786,7 @@ bridge.strategy.make_rules = function(bid_history) {
 
 	rules.push([
 	    bridge.handrange.make({points: bridge.range(16, 18),
-				  is_balanced: [true]}),
+				   is_balanced: [true]}),
 	    bridge.bid.make({str: "1N"})]);
 
 	rules.push([bridge.or_crit.make({crits: [
@@ -891,23 +891,23 @@ bridge.strategy.make_rules = function(bid_history) {
 		bridge.bid.make({level: 4, strain: open.strain})]);
 	}
 	/*
-Otherwise:
-Bid a new suit:
-You may bid a new suit at the 1 level with 4+ cards (and 6+ points)
-You may bid a new suit at the 2 level only with 5+ cards and 13+ points
-Prefer to bid your longest suit if possible.  However, if you have <13 points, you can only bid suits at the one level, and therefore may need to bid your second longest suit.
-Equal length tiebreakers:  
-When holding exactly 4 hearts and 4 spades, bid 1H
-Otherwise bid the higher ranking suit
-Bidding a new suit may have unlimited points, and is therefore forcing 
-With 6-12 points, no 4+ card major, and 5+ card support for opener's minor, raise:
-	6-10 points:    2 level
-	11-12 points:  3 level 
-    When nothing else applies:  Make a "utility response" in notrump:
-	6-10 points:    1NT
-	11-12 points:  2NT
-	13+ points:     3NT
-	 */
+          Otherwise:
+          Bid a new suit:
+          You may bid a new suit at the 1 level with 4+ cards (and 6+ points)
+          You may bid a new suit at the 2 level only with 5+ cards and 13+ points
+          Prefer to bid your longest suit if possible.  However, if you have <13 points, you can only bid suits at the one level, and therefore may need to bid your second longest suit.
+          Equal length tiebreakers:  
+          When holding exactly 4 hearts and 4 spades, bid 1H
+          Otherwise bid the higher ranking suit
+          Bidding a new suit may have unlimited points, and is therefore forcing 
+          With 6-12 points, no 4+ card major, and 5+ card support for opener's minor, raise:
+	  6-10 points:    2 level
+	  11-12 points:  3 level 
+          When nothing else applies:  Make a "utility response" in notrump:
+	  6-10 points:    1NT
+	  11-12 points:  2NT
+	  13+ points:     3NT
+	*/
     }
     else if (bid_history[bid_history.length-2].toString() == 'PS')
     {
@@ -1042,7 +1042,7 @@ bridge.test = function() {
     if (bridge.bid.make({ str: "1S" }).toString() != "1S") {
 	throw "Bad bid 1S";
     }
-    b = bridge.bid.make({
+    var b = bridge.bid.make({
 	id: 35,
     });
     if (b.toString() != "7N") {
