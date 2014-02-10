@@ -50,7 +50,7 @@ bridge._object = {
 
 bridge.is_same_type = function(first, second) {
     return first.prototype.isPrototypeOf(second) &&
-	!second.prototype.isPrototypeOf(first);
+	second.prototype.isPrototypeOf(first);
 };
 
 bridge.range = function() {
@@ -447,7 +447,7 @@ bridge.crit = bridge._object.extend({
 	    },
 	});
     },
-    intersect: function() {
+    intersect: function(other) {
  	this.assert_compatible(other);
 	var _this = this;
 	return this.make({
@@ -589,7 +589,7 @@ bridge.handrange = bridge.crit.extend({
     invert: function() {
 	return bridge.handset.make({crits: this.crit.map(
 	    function(c) {return c.invert();}
-	});
+	)});
     },
     union: function(other) {
 	if (this.crits.length == 1 && other.crits.length == 1 && this.compatible(other)) {
@@ -625,7 +625,7 @@ bridge.handrange = bridge.crit.extend({
 /**************************************************************************
  * Old Handrange
  **************************************************************************/
-bridge.handrange = bridge._object.extend({
+bridge.handrange = bridge.crit.extend({
     points:      bridge.range(0, 22),
     nCLUBS:      bridge.range(0, 14),
     nDIAMONDS:   bridge.range(0, 14),
@@ -662,20 +662,7 @@ bridge.handrange = bridge._object.extend({
 	}
 	return true;
     },
-    complement: function() {
-	// XXX
-	return [];
-    }
 });
-
-bridge.hr = {
-    intersect: function(hr1, hr2) {
-	// XXX
-    },
-    complement: function(hr) {
-	// XXX
-    },
-};
 
 /**************************************************************************
  * Strategy
@@ -785,13 +772,15 @@ bridge.strategy.interpret_bid = function(bid_history, hand) {
     bid_history = bid_history.slice(0);
     var last_bid = bid_history.pop();
     var rules = bridge.strategy.make_rules(bid_history);
-    var handrange = [bridge.handrange.make({})];
+    var handrange = bridge.crit.make({});
     for (var rr = 0; rr < rules.length; rr++) {
 	if (last_bid == rules[rr][1]) {
-	    handrange = bridge.hr.intersect(handrange, bridge.hr.complement(rules[rr][0]));
+	    console.log("here");
+	    handrange = handrange.intersect(rules[rr][0].invert());
 	}
 	else {
-	    return bridge.hr.intersect(handrange, rules[rr][0]);
+	    console.log("there");
+	    return handrange.intersect(rules[rr][0]);
 	}
     }
     return handrange;
