@@ -91,6 +91,9 @@ bridge.consts = {
     get_strain: function(c) {
 	return this.STRAINS.filter(function(s) {return s[0] == c;})[0];
     },
+    is_major: function(strain) {
+	return strain == 'SPADES' || strain == 'HEARTS';
+    }
 };
 
 /**************************************************************************
@@ -408,6 +411,14 @@ bridge.bid = bridge._object.extend({
 	}
 	return this.level + this.strain.substring(0, 1);
     },
+
+    is_game: function() {
+	return ((this.strain == 'NO_TRUMP' && this.level >= 3) ||
+		(this.strain == 'SPADES'   && this.level >= 4) ||
+		(this.strain == 'HEARTS'   && this.level >= 4) ||
+		(this.strain == 'DIAMONDS' && this.level >= 5) ||
+		(this.strain == 'CLUBS'    && this.level >= 5));
+    }
 });
 
 /**************************************************************************
@@ -762,11 +773,13 @@ bridge.strategy.is_opening_response = function(bid_history) {
 	    bridge.strategy.is_opening(bid_history.slice(0, bid_history.length-2)));
 };
 
+// This currently doesn't check that the bid is valid (bigger than the
+// previous bid), though that only matters if the opponents bid.
 bridge.strategy.make_rules = function(bid_history) {
-    // Opening.  Either your partner hasn't had a chance to bid, or
-    // your partner passed.
     var rules = [];
     if (bridge.strategy.is_opening(bid_history)) {
+	// Opening.  Either your partner hasn't had a chance to bid, or
+	// your partner passed.
 	rules.push([
 	    bridge.handrange.make({points: bridge.range(0, 12)}),
 	    bridge.bid.make({str: "PS"})]);
@@ -804,6 +817,7 @@ bridge.strategy.make_rules = function(bid_history) {
     else if (bridge.strategy.is_opening_response(bid_history) &&
 	     bid_history[bid_history.length-2].toString() == "1N")
     {
+	// Responding to a 1 no-trump opening bid
 	rules.push([
 	    bridge.handrange.make({points: bridge.range(0, 7), nSPADES: bridge.range(5, 13)}),
 	    bridge.bid.make({str: "1S"})]);
@@ -855,7 +869,57 @@ bridge.strategy.make_rules = function(bid_history) {
     else if (bridge.strategy.is_opening_response(bid_history) &&
 	     bid_history[bid_history.length-2].toString()[0] == "1")
     {
+	// Responding to a suit opening bid
+	rules.push([
+	    bridge.handrange.make({points: bridge.range(0, 5)}),
+	    bridge.bid.make({str: "PS"})]);
 	
+	var open = bid_history[bid_history.length-2];
+	if (bridge.consts.is_major(open.strain)) {
+	    var attrs = bridge._object.make({});
+	    attrs["n" + open.strain] = bridge.range(3, 13);
+	    rules.push([
+		bridge.handrange.make(attrs.make({points: bridge.range(6, 10)})),
+		bridge.bid.make({level: 2, strain: open.strain})]);
+
+	    rules.push([
+		bridge.handrange.make(attrs.make({points: bridge.range(11, 12)})),
+		bridge.bid.make({level: 3, strain: open.strain})]);
+
+	    rules.push([
+		bridge.handrange.make(attrs.make({points: bridge.range(13, 40)})),
+		bridge.bid.make({level: 4, strain: open.strain})]);
+	}
+	/*
+Otherwise:
+Bid a new suit:
+You may bid a new suit at the 1 level with 4+ cards (and 6+ points)
+You may bid a new suit at the 2 level only with 5+ cards and 13+ points
+Prefer to bid your longest suit if possible.  However, if you have <13 points, you can only bid suits at the one level, and therefore may need to bid your second longest suit.
+Equal length tiebreakers:  
+When holding exactly 4 hearts and 4 spades, bid 1H
+Otherwise bid the higher ranking suit
+Bidding a new suit may have unlimited points, and is therefore forcing 
+With 6-12 points, no 4+ card major, and 5+ card support for opener's minor, raise:
+	6-10 points:    2 level
+	11-12 points:  3 level 
+    When nothing else applies:  Make a "utility response" in notrump:
+	6-10 points:    1NT
+	11-12 points:  2NT
+	13+ points:     3NT
+	 */
+    }
+    else if (bid_history[bid_history.length-2].toString() == 'PS')
+    {
+ 	rules.push([
+	    bridge.crit.make({}),
+	    bridge.bid.make({str: "PS"})]);
+    }
+    else if (bid_history[bid_history.length-2].is_game())
+    {
+ 	rules.push([
+	    bridge.crit.make({}),
+	    bridge.bid.make({str: "PS"})]);
     }
     else {
 	// XXX
@@ -895,6 +959,37 @@ bridge.strategy.interpret_bid = function(bid_history, hand) {
     }
     return handrange;
 };
+
+/**************************************************************************
+ * Run a sample auction
+ **************************************************************************/
+
+bridge.auction = function(hands) {
+    if (!hands) {
+	hands = bridge.deal();
+    }
+    for (var hh = 0; hh < hands.length; hh++) {
+	console.log(hands[hh].toString());
+	console.log("points: " + hands[hh].points());
+    }
+    var bids = [];
+    var hh = 0;
+    var npasses = 0;
+    while (true) {
+	var bid = bridge.strategy.make_bid(bids, hands[hh]);
+	console.log(hh + ": " + bid.toString());
+	if (bid.toString() == 'PS') {
+	    npasses++;
+	} else {
+	    npasses = 0;
+	}
+	if (npasses == 4) {
+	    break;
+	}
+	bids.push(bid);
+	hh = (hh + 1) % hands.length;
+    }
+}
 
 /**************************************************************************
  * Unit Tests
