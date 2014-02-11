@@ -894,6 +894,7 @@ bridge.strategy.make_rules = function(bid_history) {
 
         var open = bid_history[bid_history.length-2];
         if (bridge.consts.is_major(open.strain)) {
+	    // XXX this trick doesn't work...
             var attrs = bridge._object.make({});
             attrs["n" + open.strain] = bridge.range(3, 13);
             rules.push([
@@ -980,7 +981,7 @@ bridge.strategy.make_rules = function(bid_history) {
             var attrs = {};
             attrs["n" + last.strain] = bridge.range(3, 13);
             rules.push([
-                bridge.handrange.make(attrs)),
+                bridge.handrange.make(attrs),
                 bridge.bid.make({level: 4, strain: last.strain})]);
             rules.push([
 		bridge.handrange.make({}),
@@ -1013,6 +1014,69 @@ bridge.strategy.make_rules = function(bid_history) {
 		bridge.handrange.make({points: bridge.range(13, 26-hi-1)}),
 		bridge.bid.make({str: "PS"})]);
 	}
+	else if (bridge.consts.is_major(last.strain) && last.level == 1) {
+	    // Responder bid a major at the 1 level and we have a fit
+	    var attrs = bridge._object.make({});
+	    attrs["n" + last.strain] = bridge.range(4, 13);
+	    rules.push([
+                bridge.handrange.make(attrs.make({points: bridge.range(13, 15)})),
+                bridge.bid.make({level: 2, strain: last.strain})]);
+	    rules.push([
+                bridge.handrange.make(attrs.make({points: bridge.range(16, 18)})),
+                bridge.bid.make({level: 3, strain: last.strain})]);
+	    rules.push([
+                bridge.handrange.make(attrs.make({points: bridge.range(19, 21)})),
+                bridge.bid.make({level: 4, strain: last.strain})]);
+	    rules.push([
+		bridge.handrange.make({points: bridge.range(19, 21), balanced: [true]}),
+		bridge.bid.make({str: "2N"})]);
+	    // if 19-21 unbalanced, jump in a new 4+ card suit, if you have one
+	    var other_suits = bridge.consts.SUITS.filter(function(s) {
+		return s != last.strain && s != open.strain;
+	    });
+	    for (var ii = 0; ii < other_suits.length; ii++) {
+		attrs = bridge._object.make({});
+		attrs["n" + other_suits[ii]] = bridge.range(4, 13);
+		// find the next legal bid in this suit
+		var level = last.level;
+		var bid = bridge.bid.make({level: level, strain: other_suits[ii]});
+		while (bid.id < last.id) {
+		    level += 1;
+		    bid = bridge.bid.make({level: level, strain: other_suits[ii]});
+		}
+		// then jump a level
+		level += 1;
+		bid = bridge.bid.make({level: level, strain: other_suits[ii]});
+		rules.push([
+		    bridge.handrange.make(attrs.make({points: bridge.range(19, 21), balanced: [false]})),
+		    bid]);
+	    }
+	    //	bridge.handrange.make({points: bridge.range(19, 21), balanced: [true]}),
+	    //	bridge.bid.make({str: "2N"})]);
+	    /*
+	      [ ] 19-21 points (maximum opening):  Jump the bidding, game forcing
+	        [x] Balanced:  Bid 2N
+	        [ ]  Unbalanced:
+		  [x] Jump in a new 4+ card suit if you have one
+	          [ ] Otherwise bid 3N or 4 of your major
+	      [ ] Bid a 4 card major at the one level if possible
+	      [ ] Bid 1N with a balanced minimum
+	      [ ] Rebid a 6+ card suit, jumping with a medium (16-18) opening
+	      [ ] Bid a second 4+ card suit at the two level	
+	      Note:  Pass is not a possibility under any of these rules
+	    */
+	}
+	/*
+	  If responder bid 1NT:
+	  Generally follow same rules as after one of a major response (i.e. go to step 1 in previous section) EXCEPT:
+	  Opener should never bid a four card suit which is higher-ranking than the initial suit.  (Responder's 1NT denied holding that suit.)
+	  Opener may pass 1N with <17 points
+
+	  If responder bid 2NT:  Similar, except opener should pass only with EXACTLY 13 points.  All other hands should keep bidding (no stopping below 3NT when we have the values for game). 
+
+	  If responder bid a new suit at the 2 level:
+	  Keep bidding naturally until game is reached.  I.e. rebid a major if you have more length than already promised, or bid a new 4+ card suit, else bid NT.
+	*/
     }
     else {
         // XXX
@@ -1028,7 +1092,7 @@ bridge.strategy.make_bid = function(bid_history, hand) {
     var rules = bridge.strategy.make_rules(bid_history);
     for (var rr = 0; rr < rules.length; rr++) {
         if (rules[rr][0].match(hand)) {
-            return rules[rr][1];
+            return rules[rr];
         }
     }
     throw "Incomplete bid rules";
@@ -1069,8 +1133,10 @@ bridge.auction = function(hands) {
     hh = 0;
     var npasses = 0;
     while (true) {
-        var bid = bridge.strategy.make_bid(bids, hands[hh]);
-        console.log(hh + ": " + bid.toString());
+	var info = bridge.strategy.make_bid(bids, hands[hh]);
+	var rule = info[0];
+	var bid = info[1];
+        console.log(hh + ": " + bid.toString() + " (" + rule.desc() + ")");
         if (bid.toString() == 'PS') {
             npasses++;
         }
