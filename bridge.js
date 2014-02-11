@@ -80,34 +80,34 @@ bridge.range = function() {
 
 bridge.dict = {
     with_props: function(props) {
-	obj = this.copy();
-	for (var prop in props) {
-	    obj[prop] = props[prop];
-	}
-	return obj;
+        obj = this.copy();
+        for (var prop in props) {
+            obj[prop] = props[prop];
+        }
+        return obj;
     },
     with_arr: function(arr) {
-	obj = this.copy();
-	for (var ii = 0; ii < arr.length; ii += 2) {
-	    var val = undefined;
-	    if (ii + 1 < arr.length) {
-		val = arr[ii+1];
-	    }
-	    obj[arr[ii]] = val;
-	}
-	return obj;
+        obj = this.copy();
+        for (var ii = 0; ii < arr.length; ii += 2) {
+            var val = undefined;
+            if (ii + 1 < arr.length) {
+                val = arr[ii+1];
+            }
+            obj[arr[ii]] = val;
+        }
+        return obj;
     },
     make: function() {
-	return this.copy().with_arr(arguments);
+        return this.copy().with_arr(arguments);
     },
     copy: function() {
-	var copy = {};
-	for (var i in this) {
+        var copy = {};
+        for (var i in this) {
             if (this.hasOwnProperty(i)) {
-		copy[i] = this[i];
+                copy[i] = this[i];
             }
-	}
-	return copy;
+        }
+        return copy;
     },
 };
 
@@ -455,17 +455,17 @@ bridge.bid = bridge._object.extend({
     },
 
     next: function(strain) {
-	var level = this.level;
-	var bid = bridge.bid.make({level: level, strain: strain});
-	while (bid.id < this.id) {
-	    level += 1;
-	    bid = bridge.bid.make({level: level, strain: strain});
-	}
-	return bid;
+        var level = this.level;
+        var bid = bridge.bid.make({level: level, strain: strain});
+        while (bid.id < this.id) {
+            level += 1;
+            bid = bridge.bid.make({level: level, strain: strain});
+        }
+        return bid;
     },
 
     jump: function() {
-	return bridge.bid.make({level: this.level+1, strain: this.strain});
+        return bridge.bid.make({level: this.level+1, strain: this.strain});
     }
 });
 
@@ -535,7 +535,7 @@ bridge.crit = bridge._object.extend({
                 };
             }
         }
-	else if (this.desc === null) {
+        else if (this.desc === null) {
             this.desc = function() {
                 return this.match.toString();
             };
@@ -702,7 +702,7 @@ bridge.handrange = bridge.crit.extend({
                 crits: [this.crits[0].union(other.crits[0])],
             });
         }
-	else {
+        else {
             return bridge.handset.make({crits: [this, other]});
         }
     },
@@ -814,15 +814,15 @@ bridge.strategy = {};
 
 bridge.strategy.is_bid_num = function(bid_history, num) {
     if (num == 1) {
-	return (bid_history.length < 2 ||
-		(bid_history.length < 4 &&
-		 bid_history[bid_history.length-2].toString() == "PS"));
+        return (bid_history.length < 2 ||
+                (bid_history.length < 4 &&
+                 bid_history[bid_history.length-2].toString() == "PS"));
     }
     else {
-	return bid_history.length > 1 &&
-	    bridge.strategy.is_bid_num(
-		bid_history.slice(0, bid_history.length-2),
-		num-1);
+        return bid_history.length > 1 &&
+            bridge.strategy.is_bid_num(
+                bid_history.slice(0, bid_history.length-2),
+                num-1);
     }
 }
 
@@ -937,209 +937,209 @@ bridge.strategy.make_rules = function(bid_history) {
 
         var open = bid_history[bid_history.length-2];
         if (bridge.consts.is_major(open.strain)) {
-	    var attrs = bridge.dict.make("n" + open.strain, bridge.range(3, 13));
+            var attrs = bridge.dict.make("n" + open.strain, bridge.range(3, 13));
             rules.push([
                 bridge.handrange.make(attrs.with_props({
-		    points: bridge.range(6, 10)})),
+                    points: bridge.range(6, 10)})),
                 bridge.bid.make({level: 2, strain: open.strain})]);
 
             rules.push([
                 bridge.handrange.make(attrs.with_props({
-		    points: bridge.range(11, 12)})),
+                    points: bridge.range(11, 12)})),
                 bridge.bid.make({level: 3, strain: open.strain})]);
 
             rules.push([
                 bridge.handrange.make(attrs.with_props({
-		    points: bridge.range(13, 40)})),
+                    points: bridge.range(13, 40)})),
                 bridge.bid.make({level: 4, strain: open.strain})]);
         }
-	if (open.strain == "CLUBS") {
+        if (open.strain == "CLUBS") {
             rules.push([bridge.or_crit.make({crits: [
-		bridge.handrange.make({nDIAMONDS: bridge.range(7, 13)}),
-		bridge.handrange.make({nDIAMONDS: [6], nHEARTS: bridge.range(0, 5), nSPADES: bridge.range(0, 5)}),
-		bridge.handrange.make({nDIAMONDS: [5], nHEARTS: bridge.range(0, 4), nSPADES: bridge.range(0, 4)}),
-		bridge.handrange.make({nDIAMONDS: [4], nHEARTS: bridge.range(0, 3), nSPADES: bridge.range(0, 3)}),
+                bridge.handrange.make({nDIAMONDS: bridge.range(7, 13)}),
+                bridge.handrange.make({nDIAMONDS: [6], nHEARTS: bridge.range(0, 5), nSPADES: bridge.range(0, 5)}),
+                bridge.handrange.make({nDIAMONDS: [5], nHEARTS: bridge.range(0, 4), nSPADES: bridge.range(0, 4)}),
+                bridge.handrange.make({nDIAMONDS: [4], nHEARTS: bridge.range(0, 3), nSPADES: bridge.range(0, 3)}),
             ]}), bridge.bid.make({str: "1D"})]);
-	}
-	if (open.strain == "CLUBS" || open.strain == "DIAMONDS") {
+        }
+        if (open.strain == "CLUBS" || open.strain == "DIAMONDS") {
             rules.push([bridge.or_crit.make({crits: [
-		bridge.handrange.make({nHEARTS: bridge.range(7, 13)}),
-		bridge.handrange.make({nHEARTS: [6], nSPADES: bridge.range(0, 5)}),
-		bridge.handrange.make({nHEARTS: [5], nSPADES: bridge.range(0, 4)}),
-		bridge.handrange.make({nHEARTS: [4], nSPADES: bridge.range(0, 4)}),
+                bridge.handrange.make({nHEARTS: bridge.range(7, 13)}),
+                bridge.handrange.make({nHEARTS: [6], nSPADES: bridge.range(0, 5)}),
+                bridge.handrange.make({nHEARTS: [5], nSPADES: bridge.range(0, 4)}),
+                bridge.handrange.make({nHEARTS: [4], nSPADES: bridge.range(0, 4)}),
             ]}), bridge.bid.make({str: "1H"})]);
-	}
-	if (open.strain == "CLUBS" || open.strain == "DIAMONDS" || open.strain == "HEARTS") {
+        }
+        if (open.strain == "CLUBS" || open.strain == "DIAMONDS" || open.strain == "HEARTS") {
             rules.push([
-		bridge.handrange.make({nSPADES: bridge.range(4, 13)}),
-		bridge.bid.make({str: "1S"})]);
-	}
-	if (open.strain == "CLUBS" || open.strain == "DIAMONDS") {
+                bridge.handrange.make({nSPADES: bridge.range(4, 13)}),
+                bridge.bid.make({str: "1S"})]);
+        }
+        if (open.strain == "CLUBS" || open.strain == "DIAMONDS") {
             var attrs = bridge.dict.make(
-		"nHEARTS", bridge.range(0, 3),
-		"nSPADES", bridge.range(0, 3),
-		"n" + open.strain, bridge.range(5, 13));
+                "nHEARTS", bridge.range(0, 3),
+                "nSPADES", bridge.range(0, 3),
+                "n" + open.strain, bridge.range(5, 13));
             rules.push([
                 bridge.handrange.make(attrs.with_props({points: bridge.range(6, 10)})),
                 bridge.bid.make({level: 2, strain: open.strain})]);
             rules.push([
                 bridge.handrange.make(attrs.with_props({points: bridge.range(11, 12)})),
                 bridge.bid.make({level: 3, strain: open.strain})]);
-	}
+        }
         rules.push([
-	    bridge.handrange.make({points: bridge.range(6, 10)}),
-	    bridge.bid.make({str: "1N"})]);
+            bridge.handrange.make({points: bridge.range(6, 10)}),
+            bridge.bid.make({str: "1N"})]);
         rules.push([
-	    bridge.handrange.make({points: bridge.range(11, 12)}),
-	    bridge.bid.make({str: "2N"})]);
+            bridge.handrange.make({points: bridge.range(11, 12)}),
+            bridge.bid.make({str: "2N"})]);
         rules.push([
-	    bridge.handrange.make({points: bridge.range(13, 40)}),
-	    bridge.bid.make({str: "3N"})]);
+            bridge.handrange.make({points: bridge.range(13, 40)}),
+            bridge.bid.make({str: "3N"})]);
     }
     else if (bridge.strategy.is_bid_num(bid_history, 3) &&
              bid_history[bid_history.length-4].toString() == "1N")
     {
-	// You opened 1N and now you are responding to the response
+        // You opened 1N and now you are responding to the response
         if (bid_history[bid_history.length-2].toString() == "PS") {
             rules.push([
-		bridge.handrange.make({}),
-		bridge.bid.make({str: "PS"})]);
-	}
-	else if (bid_history[bid_history.length-2].toString() == "2N") {
-	    // We would only bid 1N with 16-18 points, so that's all
-	    // we consider here.
+                bridge.handrange.make({}),
+                bridge.bid.make({str: "PS"})]);
+        }
+        else if (bid_history[bid_history.length-2].toString() == "2N") {
+            // We would only bid 1N with 16-18 points, so that's all
+            // we consider here.
             rules.push([
-		bridge.handrange.make({points: bridge.range(17, 18)}),
-		bridge.bid.make({str: "3N"})]);
+                bridge.handrange.make({points: bridge.range(17, 18)}),
+                bridge.bid.make({str: "3N"})]);
             rules.push([
-		bridge.handrange.make({points: bridge.range(16, 17)}),
-		bridge.bid.make({str: "PS"})]);
-	}
-	else if (bid_history[bid_history.length-2].toString()[0] == "2") {
+                bridge.handrange.make({points: bridge.range(16, 17)}),
+                bridge.bid.make({str: "PS"})]);
+        }
+        else if (bid_history[bid_history.length-2].toString()[0] == "2") {
             rules.push([
-		bridge.handrange.make({}),
-		bridge.bid.make({str: "PS"})]);
-	}
-	else if (bid_history[bid_history.length-2].toString()[0] == "3") {
-	    // 3N was covered above, so the only thing that partner
-	    // would bid to the 3 level is 3 of a major
+                bridge.handrange.make({}),
+                bridge.bid.make({str: "PS"})]);
+        }
+        else if (bid_history[bid_history.length-2].toString()[0] == "3") {
+            // 3N was covered above, so the only thing that partner
+            // would bid to the 3 level is 3 of a major
             var last = bid_history[bid_history.length-2];
             var attrs = bridge.dict.make("n" + last.strain, bridge.range(3, 13));
             rules.push([
                 bridge.handrange.make(attrs),
                 bridge.bid.make({level: 4, strain: last.strain})]);
             rules.push([
-		bridge.handrange.make({}),
-		bridge.bid.make({str: "3N"})]);
-	}
+                bridge.handrange.make({}),
+                bridge.bid.make({str: "3N"})]);
+        }
     }
     else if (bridge.strategy.is_bid_num(bid_history, 3) &&
              bid_history[bid_history.length-4].toString()[0] == "1")
     {
-	var open = bid_history[bid_history.length-4];
-	var last = bid_history[bid_history.length-2];
-	if (bridge.consts.is_major(open.strain) && last.strain == open.strain) {
-	    // You opened 1 of a major and partner raised, so there is a fit.
-	    var lo, hi;
-	    if (last.level == 2) {
-		lo = 6;
-		hi = 10;
-	    }
-	    else if (last.level == 3) {
-		lo = 11;
-		hi = 12;
-	    }
-	    rules.push([
-		bridge.handrange.make({points: bridge.range(26-lo, 40)}),
-		bridge.bid.make({str: "4" + open.strain[0]})]);
-	    rules.push([
-		bridge.handrange.make({points: bridge.range(26-hi, 26-lo-1)}),
-		bridge.bid.make({str: "3" + open.strain[0]})]);
-	    rules.push([
-		bridge.handrange.make({points: bridge.range(13, 26-hi-1)}),
-		bridge.bid.make({str: "PS"})]);
-	}
-	else if ((bridge.consts.is_major(last.strain) && last.level == 1)
-		 //|| last.toString() == "1N"
-		 //|| last.toString() == "2N"
-		)
-	{
-	    // Responder bid a major at the 1 level and we have a fit
-	    var attrs = bridge.dict.make("n" + last.strain, bridge.range(4, 13));
-	    rules.push([
+        var open = bid_history[bid_history.length-4];
+        var last = bid_history[bid_history.length-2];
+        if (bridge.consts.is_major(open.strain) && last.strain == open.strain) {
+            // You opened 1 of a major and partner raised, so there is a fit.
+            var lo, hi;
+            if (last.level == 2) {
+                lo = 6;
+                hi = 10;
+            }
+            else if (last.level == 3) {
+                lo = 11;
+                hi = 12;
+            }
+            rules.push([
+                bridge.handrange.make({points: bridge.range(26-lo, 40)}),
+                bridge.bid.make({str: "4" + open.strain[0]})]);
+            rules.push([
+                bridge.handrange.make({points: bridge.range(26-hi, 26-lo-1)}),
+                bridge.bid.make({str: "3" + open.strain[0]})]);
+            rules.push([
+                bridge.handrange.make({points: bridge.range(13, 26-hi-1)}),
+                bridge.bid.make({str: "PS"})]);
+        }
+        else if ((bridge.consts.is_major(last.strain) && last.level == 1)
+                 //|| last.toString() == "1N"
+                 //|| last.toString() == "2N"
+                )
+        {
+            // Responder bid a major at the 1 level and we have a fit
+            var attrs = bridge.dict.make("n" + last.strain, bridge.range(4, 13));
+            rules.push([
                 bridge.handrange.make(attrs.with_props({points: bridge.range(13, 15)})),
                 bridge.bid.make({level: 2, strain: last.strain})]);
-	    rules.push([
+            rules.push([
                 bridge.handrange.make(attrs.with_props({points: bridge.range(16, 18)})),
                 bridge.bid.make({level: 3, strain: last.strain})]);
-	    rules.push([
+            rules.push([
                 bridge.handrange.make(attrs.with_props({points: bridge.range(19, 21)})),
                 bridge.bid.make({level: 4, strain: last.strain})]);
-	    rules.push([
-		bridge.handrange.make({points: bridge.range(19, 21), balanced: [true]}),
-		bridge.bid.make({str: "2N"})]);
-	    // if 19-21 unbalanced, jump in a new 4+ card suit, if you have one
-	    var other_suits = bridge.consts.SUITS.filter(function(s) {
-		return s != last.strain && s != open.strain;
-	    });
-	    for (var ii = 0; ii < other_suits.length; ii++) {
-		attrs = bridge.dict.make("n" + other_suits[ii], bridge.range(4, 13));
-		rules.push([
-		    bridge.handrange.make(attrs.with_props({points: bridge.range(19, 21), balanced: [false]})),
-		    last.next(other_suits[ii]).jump()]);
-	    }
-	    rules.push([
-		bridge.handrange.make(bridge.dict.make(
-		    "n" + open.strain, bridge.range(6, 13),
-		    'points', bridge.range(19, 21),
-		    'balanced', [false])),
-		bridge.bid.make({level: 4, strain: open.strain})]);
-	    if (last.strain == "CLUBS" || last.strain == "DIAMONDS") {
-		rules.push([bridge.or_crit.make({crits: [
-		    bridge.handrange.make({nHEARTS: bridge.range(7, 13)}),
-		    bridge.handrange.make({nHEARTS: [6], nSPADES: bridge.range(0, 5)}),
-		    bridge.handrange.make({nHEARTS: [5], nSPADES: bridge.range(0, 4)}),
-		    bridge.handrange.make({nHEARTS: [4], nSPADES: bridge.range(0, 4)}),
-		]}), bridge.bid.make({str: "1H"})]);
-	    }
-	    if (last.strain == "CLUBS" || last.strain == "DIAMONDS" || last.strain == "HEARTS") {
-		rules.push([
-		    bridge.handrange.make({nSPADES: bridge.range(4, 13)}),
-		    bridge.bid.make({str: "1S"})]);
-	    }
-	    rules.push([
-		bridge.handrange.make({points: bridge.range(13, 15),
-				       balanced: [true]}),
-		bridge.bid.make({str: "1N"})]);
-	    rules.push([
-		bridge.handrange.make(bridge.dict.make(
-		    "n" + open.strain, bridge.range(6, 13),
-		    'points', bridge.range(16, 18))),
-		last.next(open.strain).jump()]);
-	    rules.push([
-		bridge.handrange.make(bridge.dict.make(
-		    "n" + open.strain, bridge.range(6, 13),
-		    'points', bridge.range(13, 15))),
-		last.next(open.strain)]);
-	    for (var ii = 0; ii < other_suits.length; ii++) {
-		rules.push([
-		    bridge.handrange.make(bridge.dict.make("n" + other_suits[ii], bridge.range(4, 13))),
-		    last.next(other_suits[ii])]);
-	    }
-	}
-	else if (last.toString() == "1N") {
-	/*
-	  If responder bid 1NT:
-	  Generally follow same rules as after one of a major response (i.e. go to step 1 in previous section) EXCEPT:
-	  Opener should never bid a four card suit which is higher-ranking than the initial suit.  (Responder's 1NT denied holding that suit.)
-	  Opener may pass 1N with <17 points
+            rules.push([
+                bridge.handrange.make({points: bridge.range(19, 21), balanced: [true]}),
+                bridge.bid.make({str: "2N"})]);
+            // if 19-21 unbalanced, jump in a new 4+ card suit, if you have one
+            var other_suits = bridge.consts.SUITS.filter(function(s) {
+                return s != last.strain && s != open.strain;
+            });
+            for (var ii = 0; ii < other_suits.length; ii++) {
+                attrs = bridge.dict.make("n" + other_suits[ii], bridge.range(4, 13));
+                rules.push([
+                    bridge.handrange.make(attrs.with_props({points: bridge.range(19, 21), balanced: [false]})),
+                    last.next(other_suits[ii]).jump()]);
+            }
+            rules.push([
+                bridge.handrange.make(bridge.dict.make(
+                    "n" + open.strain, bridge.range(6, 13),
+                    'points', bridge.range(19, 21),
+                    'balanced', [false])),
+                bridge.bid.make({level: 4, strain: open.strain})]);
+            if (last.strain == "CLUBS" || last.strain == "DIAMONDS") {
+                rules.push([bridge.or_crit.make({crits: [
+                    bridge.handrange.make({nHEARTS: bridge.range(7, 13)}),
+                    bridge.handrange.make({nHEARTS: [6], nSPADES: bridge.range(0, 5)}),
+                    bridge.handrange.make({nHEARTS: [5], nSPADES: bridge.range(0, 4)}),
+                    bridge.handrange.make({nHEARTS: [4], nSPADES: bridge.range(0, 4)}),
+                ]}), bridge.bid.make({str: "1H"})]);
+            }
+            if (last.strain == "CLUBS" || last.strain == "DIAMONDS" || last.strain == "HEARTS") {
+                rules.push([
+                    bridge.handrange.make({nSPADES: bridge.range(4, 13)}),
+                    bridge.bid.make({str: "1S"})]);
+            }
+            rules.push([
+                bridge.handrange.make({points: bridge.range(13, 15),
+                                       balanced: [true]}),
+                bridge.bid.make({str: "1N"})]);
+            rules.push([
+                bridge.handrange.make(bridge.dict.make(
+                    "n" + open.strain, bridge.range(6, 13),
+                    'points', bridge.range(16, 18))),
+                last.next(open.strain).jump()]);
+            rules.push([
+                bridge.handrange.make(bridge.dict.make(
+                    "n" + open.strain, bridge.range(6, 13),
+                    'points', bridge.range(13, 15))),
+                last.next(open.strain)]);
+            for (var ii = 0; ii < other_suits.length; ii++) {
+                rules.push([
+                    bridge.handrange.make(bridge.dict.make("n" + other_suits[ii], bridge.range(4, 13))),
+                    last.next(other_suits[ii])]);
+            }
+        }
+        else if (last.toString() == "1N") {
+        /*
+          If responder bid 1NT:
+          Generally follow same rules as after one of a major response (i.e. go to step 1 in previous section) EXCEPT:
+          Opener should never bid a four card suit which is higher-ranking than the initial suit.  (Responder's 1NT denied holding that suit.)
+          Opener may pass 1N with <17 points
 
-	  If responder bid 2NT:  Similar, except opener should pass only with EXACTLY 13 points.  All other hands should keep bidding (no stopping below 3NT when we have the values for game). 
+          If responder bid 2NT:  Similar, except opener should pass only with EXACTLY 13 points.  All other hands should keep bidding (no stopping below 3NT when we have the values for game).
 
-	  If responder bid a new suit at the 2 level:
-	  Keep bidding naturally until game is reached.  I.e. rebid a major if you have more length than already promised, or bid a new 4+ card suit, else bid NT.
-	*/
-	}
+          If responder bid a new suit at the 2 level:
+          Keep bidding naturally until game is reached.  I.e. rebid a major if you have more length than already promised, or bid a new 4+ card suit, else bid NT.
+        */
+        }
     }
     else {
         // XXX
@@ -1196,14 +1196,14 @@ bridge.auction = function(hands) {
     hh = 0;
     var npasses = 0;
     while (true) {
-	var info = bridge.strategy.make_bid(bids, hands[hh]);
-	var rule = info[0];
-	var bid = info[1];
+        var info = bridge.strategy.make_bid(bids, hands[hh]);
+        var rule = info[0];
+        var bid = info[1];
         console.log(hh + ": " + bid.toString() + " (" + rule.desc() + ")");
         if (bid.toString() == 'PS') {
             npasses++;
         }
-	else {
+        else {
             npasses = 0;
         }
         if (npasses == 4) {
