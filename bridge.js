@@ -487,7 +487,8 @@ bridge.crit = bridge._object.extend({
                     return "MATCH_ALL";
                 };
             }
-        } else if (this.desc === null) {
+        }
+	else if (this.desc === null) {
             this.desc = function() {
                 return this.match.toString();
             };
@@ -632,7 +633,7 @@ bridge.or_crit = bridge.crit.extend({
  **************************************************************************/
 // A criterion which is made up of a list of sub-criteria.  This
 // criterion is true if all of the sub-criteria are true.
-// This is unused
+// This is unused and doesn't work because we'd need to define a "handset"
 bridge.handrange = bridge.crit.extend({
     crits: [],
     match: function(hand, detail) {
@@ -653,7 +654,8 @@ bridge.handrange = bridge.crit.extend({
             return this.make({
                 crits: [this.crits[0].union(other.crits[0])],
             });
-        } else {
+        }
+	else {
             return bridge.handset.make({crits: [this, other]});
         }
     },
@@ -763,22 +765,25 @@ bridge.handrange = bridge.crit.extend({
 
 bridge.strategy = {};
 
-bridge.strategy.is_opening = function(bid_history) {
-    return (bid_history.length < 2 ||
-            bid_history.length < 4 &&
-            bid_history[bid_history.length-2].toString() == "PS");
-};
-
-bridge.strategy.is_opening_response = function(bid_history) {
-    return (bid_history.length > 1 &&
-            bridge.strategy.is_opening(bid_history.slice(0, bid_history.length-2)));
-};
+bridge.strategy.is_bid_num = function(bid_history, num) {
+    if (num == 1) {
+	return (bid_history.length < 2 ||
+		(bid_history.length < 4 &&
+		 bid_history[bid_history.length-2].toString() == "PS"));
+    }
+    else {
+	return bid_history.length > 1 &&
+	    bridge.strategy.is_bid_num(
+		bid_history.slice(0, bid_history.length-2),
+		num-1);
+    }
+}
 
 // This currently doesn't check that the bid is valid (bigger than the
 // previous bid), though that only matters if the opponents bid.
 bridge.strategy.make_rules = function(bid_history) {
     var rules = [];
-    if (bridge.strategy.is_opening(bid_history)) {
+    if (bridge.strategy.is_bid_num(bid_history, 1)) {
         // Opening.  Either your partner hasn't had a chance to bid, or
         // your partner passed.
         rules.push([
@@ -815,7 +820,19 @@ bridge.strategy.make_rules = function(bid_history) {
             bridge.crit.make({}),
             bridge.bid.make({str: "1C"})]);
     }
-    else if (bridge.strategy.is_opening_response(bid_history) &&
+    else if (bid_history[bid_history.length-2].toString() == 'PS')
+    {
+        rules.push([
+            bridge.crit.make({}),
+            bridge.bid.make({str: "PS"})]);
+    }
+    else if (bid_history[bid_history.length-2].is_game())
+    {
+        rules.push([
+            bridge.crit.make({}),
+            bridge.bid.make({str: "PS"})]);
+    }
+    else if (bridge.strategy.is_bid_num(bid_history, 2) &&
              bid_history[bid_history.length-2].toString() == "1N")
     {
         // Responding to a 1 no-trump opening bid
@@ -867,7 +884,7 @@ bridge.strategy.make_rules = function(bid_history) {
             bridge.handrange.make({points: bridge.range(10,40)}),
             bridge.bid.make({str: "3N"})]);
     }
-    else if (bridge.strategy.is_opening_response(bid_history) &&
+    else if (bridge.strategy.is_bid_num(bid_history, 2) &&
              bid_history[bid_history.length-2].toString()[0] == "1")
     {
         // Responding to a suit opening bid
@@ -891,36 +908,111 @@ bridge.strategy.make_rules = function(bid_history) {
                 bridge.handrange.make(attrs.make({points: bridge.range(13, 40)})),
                 bridge.bid.make({level: 4, strain: open.strain})]);
         }
-        /*
-          Otherwise:
-          Bid a new suit:
-          You may bid a new suit at the 1 level with 4+ cards (and 6+ points)
-          You may bid a new suit at the 2 level only with 5+ cards and 13+ points
-          Prefer to bid your longest suit if possible.  However, if you have <13 points, you can only bid suits at the one level, and therefore may need to bid your second longest suit.
-          Equal length tiebreakers:
-          When holding exactly 4 hearts and 4 spades, bid 1H
-          Otherwise bid the higher ranking suit
-          Bidding a new suit may have unlimited points, and is therefore forcing
-          With 6-12 points, no 4+ card major, and 5+ card support for opener's minor, raise:
-          6-10 points:    2 level
-          11-12 points:  3 level
-          When nothing else applies:  Make a "utility response" in notrump:
-          6-10 points:    1NT
-          11-12 points:  2NT
-          13+ points:     3NT
-        */
-    }
-    else if (bid_history[bid_history.length-2].toString() == 'PS')
-    {
+	if (open.strain == "CLUBS") {
+            rules.push([bridge.or_crit.make({crits: [
+		bridge.handrange.make({nDIAMONDS: bridge.range(7, 13)}),
+		bridge.handrange.make({nDIAMONDS: [6], nHEARTS: bridge.range(0, 5), nSPADES: bridge.range(0, 5)}),
+		bridge.handrange.make({nDIAMONDS: [5], nHEARTS: bridge.range(0, 4), nSPADES: bridge.range(0, 4)}),
+		bridge.handrange.make({nDIAMONDS: [4], nHEARTS: bridge.range(0, 3), nSPADES: bridge.range(0, 3)}),
+            ]}), bridge.bid.make({str: "1D"})]);
+	}
+	if (open.strain == "CLUBS" || open.strain == "DIAMONDS") {
+            rules.push([bridge.or_crit.make({crits: [
+		bridge.handrange.make({nHEARTS: bridge.range(7, 13)}),
+		bridge.handrange.make({nHEARTS: [6], nSPADES: bridge.range(0, 5)}),
+		bridge.handrange.make({nHEARTS: [5], nSPADES: bridge.range(0, 4)}),
+		bridge.handrange.make({nHEARTS: [4], nSPADES: bridge.range(0, 4)}),
+            ]}), bridge.bid.make({str: "1H"})]);
+	}
+	if (open.strain == "CLUBS" || open.strain == "DIAMONDS" || open.strain == "HEARTS") {
+            rules.push([
+		bridge.handrange.make({nSPADES: bridge.range(4, 13)}),
+		bridge.bid.make({str: "1S"})]);
+	}
+	if (open.strain == "CLUBS" || open.strain == "DIAMONDS") {
+            var attrs = bridge._object.make({nHEARTS: bridge.range(0, 3), nSPADES: bridge.range(0, 3)});
+            attrs["n" + open.strain] = bridge.range(5, 13);
+            rules.push([
+                bridge.handrange.make(attrs.make({points: bridge.range(6, 10)})),
+                bridge.bid.make({level: 2, strain: open.strain})]);
+            rules.push([
+                bridge.handrange.make(attrs.make({points: bridge.range(11, 12)})),
+                bridge.bid.make({level: 3, strain: open.strain})]);
+	}
         rules.push([
-            bridge.crit.make({}),
-            bridge.bid.make({str: "PS"})]);
-    }
-    else if (bid_history[bid_history.length-2].is_game())
-    {
+	    bridge.handrange.make({points: bridge.range(6, 10)}),
+	    bridge.bid.make({str: "1N"})]);
         rules.push([
-            bridge.crit.make({}),
-            bridge.bid.make({str: "PS"})]);
+	    bridge.handrange.make({points: bridge.range(11, 12)}),
+	    bridge.bid.make({str: "2N"})]);
+        rules.push([
+	    bridge.handrange.make({points: bridge.range(13, 40)}),
+	    bridge.bid.make({str: "3N"})]);
+    }
+    else if (bridge.strategy.is_bid_num(bid_history, 3) &&
+             bid_history[bid_history.length-4].toString() == "1N")
+    {
+	// You opened 1N and now you are responding to the response
+        if (bid_history[bid_history.length-2].toString() == "PS") {
+            rules.push([
+		bridge.handrange.make({}),
+		bridge.bid.make({str: "PS"})]);
+	}
+	else if (bid_history[bid_history.length-2].toString() == "2N") {
+	    // We would only bid 1N with 16-18 points, so that's all
+	    // we consider here.
+            rules.push([
+		bridge.handrange.make({points: bridge.range(17, 18)}),
+		bridge.bid.make({str: "3N"})]);
+            rules.push([
+		bridge.handrange.make({points: bridge.range(16, 17)}),
+		bridge.bid.make({str: "PS"})]);
+	}
+	else if (bid_history[bid_history.length-2].toString()[0] == "2") {
+            rules.push([
+		bridge.handrange.make({}),
+		bridge.bid.make({str: "PS"})]);
+	}
+	else if (bid_history[bid_history.length-2].toString()[0] == "3") {
+	    // 3N was covered above, so the only thing that partner
+	    // would bid to the 3 level is 3 of a major
+            var last = bid_history[bid_history.length-2];
+            var attrs = {};
+            attrs["n" + last.strain] = bridge.range(3, 13);
+            rules.push([
+                bridge.handrange.make(attrs)),
+                bridge.bid.make({level: 4, strain: last.strain})]);
+            rules.push([
+		bridge.handrange.make({}),
+		bridge.bid.make({str: "3N"})]);
+	}
+    }
+    else if (bridge.strategy.is_bid_num(bid_history, 3) &&
+             bid_history[bid_history.length-4].toString()[0] == "1")
+    {
+	var open = bid_history[bid_history.length-4];
+	var last = bid_history[bid_history.length-2];
+	if (bridge.consts.is_major(open.strain) && last.strain == open.strain) {
+	    // You opened 1 of a major and partner raised, so there is a fit.
+	    var lo, hi;
+	    if (last.level == 2) {
+		lo = 6;
+		hi = 10;
+	    }
+	    else if (last.level == 3) {
+		lo = 11;
+		hi = 12;
+	    }
+	    rules.push([
+		bridge.handrange.make({points: bridge.range(26-lo, 40)}),
+		bridge.bid.make({str: "4" + open.strain[0]})]);
+	    rules.push([
+		bridge.handrange.make({points: bridge.range(26-hi, 26-lo-1)}),
+		bridge.bid.make({str: "3" + open.strain[0]})]);
+	    rules.push([
+		bridge.handrange.make({points: bridge.range(13, 26-hi-1)}),
+		bridge.bid.make({str: "PS"})]);
+	}
     }
     else {
         // XXX
@@ -981,7 +1073,8 @@ bridge.auction = function(hands) {
         console.log(hh + ": " + bid.toString());
         if (bid.toString() == 'PS') {
             npasses++;
-        } else {
+        }
+	else {
             npasses = 0;
         }
         if (npasses == 4) {
@@ -1061,7 +1154,7 @@ bridge.test = function() {
     c.union(d);
     for (var ii = 0; ii < hands.length; ii++) {
         if ((hands[ii].by_suit.SPADES.length > 2 && c.match(hands[ii])) ||
-            (hands[ii].by_suitSPADES.length < 3 && !c.match(hands[ii])))
+            (hands[ii].by_suit.SPADES.length < 3 && !c.match(hands[ii])))
         {
             throw "Bad crit for hand " + ii + "\n" + hands[ii];
         }
