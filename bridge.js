@@ -1050,6 +1050,20 @@ bridge.strategy.make_rules = function(bid_history) {
             else if (last.level == 3) {
                 lo = 11;
                 hi = 12;
+                // There is a bit of a bug here -- if you have 14
+                // points and bid 1S, then partner has 12 points and
+                // bid 3S, then you'll see that partner's minimum is
+                // 11, so you only have a guaranteed 25, not 26, so
+                // you won't bid 4S, you'll fall into the invitational
+                // range and try to bid 3S again, which is not
+                // allowed.
+                //
+                // The question is what you do if you have 14 points
+                // and partner has 11.  If you think you should go for
+                // it, then change lo to 12.  If you think you should
+                // stay at 3S, you should change hi to 11...Let's go
+                // for it.
+                lo = 12
             }
             rules.push([
                 bridge.handrange.make({points: bridge.range(26-lo, 40)}),
@@ -1129,6 +1143,7 @@ bridge.strategy.make_rules = function(bid_history) {
                     last.next(other_suits[ii])]);
             }
         }
+        // XXX What do we do if the bidding goes 1C - 1D?
         else if (last.toString() == "1N") {
         /*
           If responder bid 1NT:
