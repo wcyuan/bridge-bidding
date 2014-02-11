@@ -80,16 +80,17 @@ bridge.range = function() {
 
 bridge.dict = {
     with_props: function(props) {
-        obj = this.copy();
+        var obj = this.copy();
         for (var prop in props) {
             obj[prop] = props[prop];
         }
         return obj;
     },
     with_arr: function(arr) {
-        obj = this.copy();
+        var obj = this.copy();
+        var val;
         for (var ii = 0; ii < arr.length; ii += 2) {
-            var val = undefined;
+            val = undefined;
             if (ii + 1 < arr.length) {
                 val = arr[ii+1];
             }
@@ -824,12 +825,13 @@ bridge.strategy.is_bid_num = function(bid_history, num) {
                 bid_history.slice(0, bid_history.length-2),
                 num-1);
     }
-}
+};
 
 // This currently doesn't check that the bid is valid (bigger than the
 // previous bid), though that only matters if the opponents bid.
 bridge.strategy.make_rules = function(bid_history) {
     var rules = [];
+    var attrs, open, last;
     if (bridge.strategy.is_bid_num(bid_history, 1)) {
         // Opening.  Either your partner hasn't had a chance to bid, or
         // your partner passed.
@@ -935,9 +937,9 @@ bridge.strategy.make_rules = function(bid_history) {
             bridge.handrange.make({points: bridge.range(0, 5)}),
             bridge.bid.make({str: "PS"})]);
 
-        var open = bid_history[bid_history.length-2];
+        open = bid_history[bid_history.length-2];
         if (bridge.consts.is_major(open.strain)) {
-            var attrs = bridge.dict.make("n" + open.strain, bridge.range(3, 13));
+            attrs = bridge.dict.make("n" + open.strain, bridge.range(3, 13));
             rules.push([
                 bridge.handrange.make(attrs.with_props({
                     points: bridge.range(6, 10)})),
@@ -975,7 +977,7 @@ bridge.strategy.make_rules = function(bid_history) {
                 bridge.bid.make({str: "1S"})]);
         }
         if (open.strain == "CLUBS" || open.strain == "DIAMONDS") {
-            var attrs = bridge.dict.make(
+            attrs = bridge.dict.make(
                 "nHEARTS", bridge.range(0, 3),
                 "nSPADES", bridge.range(0, 3),
                 "n" + open.strain, bridge.range(5, 13));
@@ -1023,8 +1025,8 @@ bridge.strategy.make_rules = function(bid_history) {
         else if (bid_history[bid_history.length-2].toString()[0] == "3") {
             // 3N was covered above, so the only thing that partner
             // would bid to the 3 level is 3 of a major
-            var last = bid_history[bid_history.length-2];
-            var attrs = bridge.dict.make("n" + last.strain, bridge.range(3, 13));
+            last = bid_history[bid_history.length-2];
+            attrs = bridge.dict.make("n" + last.strain, bridge.range(3, 13));
             rules.push([
                 bridge.handrange.make(attrs),
                 bridge.bid.make({level: 4, strain: last.strain})]);
@@ -1036,8 +1038,8 @@ bridge.strategy.make_rules = function(bid_history) {
     else if (bridge.strategy.is_bid_num(bid_history, 3) &&
              bid_history[bid_history.length-4].toString()[0] == "1")
     {
-        var open = bid_history[bid_history.length-4];
-        var last = bid_history[bid_history.length-2];
+        open = bid_history[bid_history.length-4];
+        last = bid_history[bid_history.length-2];
         if (bridge.consts.is_major(open.strain) && last.strain == open.strain) {
             // You opened 1 of a major and partner raised, so there is a fit.
             var lo, hi;
@@ -1065,7 +1067,7 @@ bridge.strategy.make_rules = function(bid_history) {
                 )
         {
             // Responder bid a major at the 1 level and we have a fit
-            var attrs = bridge.dict.make("n" + last.strain, bridge.range(4, 13));
+            attrs = bridge.dict.make("n" + last.strain, bridge.range(4, 13));
             rules.push([
                 bridge.handrange.make(attrs.with_props({points: bridge.range(13, 15)})),
                 bridge.bid.make({level: 2, strain: last.strain})]);
@@ -1121,7 +1123,7 @@ bridge.strategy.make_rules = function(bid_history) {
                     "n" + open.strain, bridge.range(6, 13),
                     'points', bridge.range(13, 15))),
                 last.next(open.strain)]);
-            for (var ii = 0; ii < other_suits.length; ii++) {
+            for (ii = 0; ii < other_suits.length; ii++) {
                 rules.push([
                     bridge.handrange.make(bridge.dict.make("n" + other_suits[ii], bridge.range(4, 13))),
                     last.next(other_suits[ii])]);
