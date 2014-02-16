@@ -652,7 +652,7 @@ bridge.and_crit = bridge.crit.extend({
         return true;
     },
     desc: function() {
-        return this.crits.map(function(c) { return c.desc(); }).join(' AND ');
+        return this.crits.map(function(c) { return "(" + c.desc() + ")"; }).join(' AND ');
     },
 });
 
@@ -672,7 +672,7 @@ bridge.or_crit = bridge.crit.extend({
         return false;
     },
     desc: function() {
-        return this.crits.map(function(c) { return c.desc(); }).join(' OR ');
+        return this.crits.map(function(c) { return "(" + c.desc() + ")"; }).join(' OR ');
     },
 });
 
