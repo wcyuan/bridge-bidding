@@ -1205,18 +1205,25 @@ bridge.auction = function(hands) {
     if (!hands) {
         hands = bridge.deal();
     }
+    var lines = [];
     for (var hh = 0; hh < hands.length; hh++) {
-        console.log(hands[hh].toString());
-        console.log("points: " + hands[hh].points());
+        lines.push(hands[hh].toString());
+        lines.push("points: " + hands[hh].points());
     }
     var bids = [];
     hh = 0;
     var npasses = 0;
     while (true) {
-        var info = bridge.strategy.make_bid(bids, hands[hh]);
+        var info;
+        try{
+            info = bridge.strategy.make_bid(bids, hands[hh]);
+        } catch (err) {
+            lines.push(err);
+            break;
+        }
         var rule = info[0];
         var bid = info[1];
-        console.log(hh + ": " + bid.toString() + " (" + rule.desc() + ")");
+        lines.push(hh + ": " + bid.toString() + " (" + rule.desc() + ")");
         if (bid.toString() == 'PS') {
             npasses++;
         }
@@ -1229,6 +1236,7 @@ bridge.auction = function(hands) {
         bids.push(bid);
         hh = (hh + 1) % hands.length;
     }
+    return lines.join("\n");
 };
 
 /**************************************************************************
