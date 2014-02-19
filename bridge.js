@@ -645,7 +645,7 @@ bridge.and_crit = bridge.crit.extend({
     crits: [],
     match: function(hand, detail) {
         for (var ii = 0; ii < this.crits.length; ii++) {
-            if (this.crits[ii].match(hand, detail)) {
+            if (!this.crits[ii].match(hand, detail)) {
                 return false;
             }
         }
@@ -681,16 +681,33 @@ bridge.or_crit = bridge.crit.extend({
  **************************************************************************/
 // A criterion which is made up of a list of sub-criteria.  This
 // criterion is true if all of the sub-criteria are true.
-// This is unused and doesn't work because we'd need to define a "handset"
-bridge.handrange = bridge.crit.extend({
-    crits: [],
-    match: function(hand, detail) {
-        for (var ii = 0; ii < this.crits.length; ii++) {
-            if (!this.crits[ii].match(hand, detail)) {
-                return false;
+// The union/invert/intersection functions don't yet work because we'd need to define a "handset"
+// but init and match work
+bridge.handrange = bridge.and_crit.extend({
+    //vars: ['points', 'nCLUBS', 'nDIAMONDS', 'nHEARTS', 'nSPADES', 'is_balanced'],
+    init: function() {
+        this.crits = [];
+        if (this.points) {
+            this.points = bridge.fcrit.make({fname: 'points',
+                values: this.points,
+                allvalues: bridge.range(0, 40)});
+            this.crits.push(this.points);
+        }
+        for (var ss = 0; ss < bridge.consts.SUITS.length; ss++) {
+            var suit = bridge.consts.SUITS[ss];
+            var critname = "n" + suit;
+            if (this[critname]) {
+                this[critname] = bridge.ncard_crit.make({suit: suit,
+                    values: this[critname]});
+                this.crits.push(this[critname]);
             }
         }
-        return true;
+        if (this.is_balanced) {
+            this.is_balanced = bridge.fcrit.make({fname: 'is_balanced',
+                values: this.is_balanced,
+                allvalues: [true, false]});
+            this.crits.push(this.is_balanced);
+        }
     },
     invert: function() {
         return bridge.handset.make({crits: this.crit.map(
@@ -732,7 +749,7 @@ bridge.handrange = bridge.crit.extend({
 /**************************************************************************
  * Old Handrange
  **************************************************************************/
-bridge.handrange = bridge.crit.extend({
+bridge.oldhandrange = bridge.crit.extend({
     points:      null,
     nCLUBS:      null,
     nDIAMONDS:   null,
@@ -1201,7 +1218,7 @@ bridge.strategy.interpret_bid = function(bid_history, hand) {
  * Run a sample auction
  **************************************************************************/
 
-bridge.auction = function(hands) {
+bridge.auction = function(hands, errs) {
     if (!hands) {
         hands = bridge.deal();
     }
@@ -1218,8 +1235,12 @@ bridge.auction = function(hands) {
         try{
             info = bridge.strategy.make_bid(bids, hands[hh]);
         } catch (err) {
-            lines.push(err);
-            break;
+            if (errs) {
+                throw err;
+            } else {
+                lines.push(err);
+                break;
+            }
         }
         var rule = info[0];
         var bid = info[1];
