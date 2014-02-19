@@ -685,8 +685,11 @@ bridge.or_crit = bridge.crit.extend({
 // but init and match work
 bridge.handrange = bridge.and_crit.extend({
     //vars: ['points', 'nCLUBS', 'nDIAMONDS', 'nHEARTS', 'nSPADES', 'is_balanced'],
+    crits: null,
     init: function() {
-        this.crits = [];
+        if (!this.crits) {
+            this.crits = [];
+        }
         if (this.points) {
             this.points = bridge.fcrit.make({fname: 'points',
                 values: this.points,
